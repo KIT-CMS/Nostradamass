@@ -6,14 +6,14 @@ filenames = ['ggH', 'DY']
 
 for filename in filenames:
     # Convert a TTree in a ROOT file into a NumPy structured array
-    arr = root2array(filename + '.root', 'mt_jecUncNom_tauEsNom/ntuple', branches=[
+    arr = root2array("data/"+filename + '.root', 'mt_jecUncNom_tauEsNom/ntuple', branches=[
             "m_sv", "pt_sv", "eta_sv", "phi_sv",
             "m_1", "pt_1", "eta_1", "phi_1",
             "m_2", "pt_2", "eta_2", "phi_2",
             "met", "metphi"])
     print arr
 
-    csvfile = open(filename+'.csv', 'wb')
+    csvfile = open("data/"+filename+'.csv', 'wb')
     writer = csv.writer(csvfile, delimiter=';',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
     for a in arr:
