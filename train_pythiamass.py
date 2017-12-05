@@ -34,7 +34,7 @@ in_filename = "sim.log"
 
 n_events = sum(1 for line in open(in_filename))
 
-dim = 15
+dim = 21
 targets = 4
 X = np.zeros([n_events, dim])
 Y = np.zeros([n_events, targets])
@@ -77,6 +77,8 @@ with open(in_filename, 'rb') as csvfile:
         #mets.append(met)
         #x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py, met.pt2()])
         x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py, met.pt2(),
+                    lepton_1.px**2, lepton_1.py**2, lepton_1.pz**2,
+                    lepton_2.px**2, lepton_2.py**2, lepton_2.pz**2,
                   lepton_1.e**2, lepton_2.e**2, met.px**2, met.py**2
                     #, lepton_1_neutrinos, lepton_2_neutrinos
                     ])
@@ -127,13 +129,15 @@ scaler_output.close()
 # model def
 model = Sequential()
 model.add(Dense(1000, activation='tanh', input_shape=(X.shape[1],)))
+model.add(Dense(500, activation='tanh'))
+model.add(Dense(200, activation='tanh'))
 model.add(Dense(Y.shape[1], activation='linear'))
 #model.compile(loss='logcosh', optimizer='adam')
 model.compile(loss='mean_squared_error', optimizer='adam')
 model.summary()
 model.fit(X, Y, # Training data
             batch_size=20000, # Batch size
-            nb_epoch=50, # Number of training epochs
+            nb_epoch=250, # Number of training epochs
             validation_split=0.1)
 model.save("toy_mass.h5")
 unscaled_pred = model.predict(X)
