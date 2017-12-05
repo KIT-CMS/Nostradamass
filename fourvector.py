@@ -2,6 +2,18 @@ import math
 import numpy as np
 import sys
 
+def create_FourMomentum(in_string):
+    result_vector = FourMomentum(0,0,0,0)
+
+    vectors = in_string.split(";")
+    for v in vectors:
+        if len(v) ==0:
+            continue
+        x = v.split(",")
+        result_vector += FourMomentum(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
+
+    return result_vector
+
 METRIC = [1,-1,-1,-1]
 def contract_tuples(lhs,rhs,metric = None):
     return sum(m*l*r for m,l,r in zip(metric if metric else [1]*len(lhs),lhs,rhs))
@@ -29,7 +41,10 @@ class FourVector(object):
     
     def __add__(lhs,rhs):
         return FourVector(*[sum(x) for x in zip(lhs.components(),rhs.components())])
-    
+
+    def __str__(self):
+        return str(('x0: ', self.x0, ', x1: ', self.x1, ', x2: ', self.x2, ', x3: ', self.x3))
+
     @property
     def x0(self):
         return self._x0
