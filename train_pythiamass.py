@@ -86,7 +86,8 @@ with open(in_filename, 'rb') as csvfile:
         X[line,:] = x
         Y[line,:] = y
 
-accessors = ['e', 'px', 'py', 'pz', 'pt', 'eta', 'phi']
+accessors = ['e', 'px', 'py', 'pz']
+#accessors = ['e', 'px', 'py', 'pz', 'pt', 'eta', 'phi']
 for a in range(4):
     for ac in accessors:
         pts = plt.figure()
@@ -126,18 +127,45 @@ pickle.dump(scaler, scaler_output)
 pickle.dump(scalerTarget, scaler_output)
 scaler_output.close()
 
+import keras.backend as K
+def custom_loss(y_true, y_pred):
+    mean_squared_error = K.mean(K.square(y_pred[:,0] - y_true[:,0]) + K.square(y_pred[:,1] - y_true[:,1]) + K.square(y_pred[:,2] - y_true[:,2]) + K.square(y_pred[:,3] - y_true[:,3]))/4
+    return mean_squared_error
+
+def mass_loss(y_true, y_pred):
+    zeros =  K.zeros_like(y_pred[:,0])
+    #raise Exception(K.greater(zeros, (K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3]))))
+    #raise Exception(tf.shape(tf.where(K.greater(zeros, ((K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3]))))))[0])
+    mean_squared_error = K.mean(K.square(y_pred - y_true))
+    pred_masses = K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3])
+    true_masses = K.square(y_true[:,0]) - K.square(y_true[:,1])  - K.square(y_true[:,2]) - K.square(y_true[:,3])
+    penalty = K.abs(K.mean(true_masses - pred_masses))
+    pred_masses_negative = - pred_masses * tf.to_float(tf.shape(tf.where(K.greater(zeros, pred_masses)))) 
+    return penalty + mean_squared_error #mean_squared_error#penalty
+
+def mass_diff(y_true, y_pred):
+    #raise Exception(y_pred)
+    y_pred_trans = scalerTarget.inverse_transform(tf.transpose(y_pred))
+    y_true_trans = scalerTarget.inverse_transform(tf.transpose(y_true))
+    pred_masses = K.square(y_pred_trans[:,0]) - K.square(y_pred_trans[:,1])  - K.square(y_pred_trans[:,2]) - K.square(y_pred_trans[:,3])
+    true_masses = K.square(y_true_trans[:,0]) - K.square(y_true_trans[:,1])  - K.square(y_true_trans[:,2]) - K.square(y_true_trans[:,3])
+    return K.abs(K.mean(true_masses - pred_masses))
+
+
 # model def
 model = Sequential()
 model.add(Dense(1000, activation='tanh', input_shape=(X.shape[1],)))
-model.add(Dense(500, activation='tanh'))
-model.add(Dense(200, activation='tanh'))
+#model.add(Dense(1000, activation='tanh'))
+#model.add(Dense(1000, activation='tanh'))
+#model.add(Dense(1000, activation='tanh'))
 model.add(Dense(Y.shape[1], activation='linear'))
 #model.compile(loss='logcosh', optimizer='adam')
 model.compile(loss='mean_squared_error', optimizer='adam')
+#model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
 model.summary()
 model.fit(X, Y, # Training data
-            batch_size=20000, # Batch size
-            nb_epoch=250, # Number of training epochs
+            batch_size=200, # Batch size
+            nb_epoch=300, # Number of training epochs
             validation_split=0.1)
 model.save("toy_mass.h5")
 unscaled_pred = model.predict(X)
@@ -172,10 +200,12 @@ for a in range(4):
     plt.savefig("transform-target-regressed"+str(a)+".png")
 
 for a in range(4):
+    range = [-500,500] if a>0 else [0,4000]
     pts = plt.figure()
-    n, bins, patches = plt.hist(regressed_fourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75)
-    n, bins, patches = plt.hist(target_fourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
+    n, bins, patches = plt.hist(regressed_fourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75, range=range)
+    n, bins, patches = plt.hist(target_fourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75, range=range)
     plt.savefig("tech-target-regressed"+str(a)+".png")
+    print "resolution ", a,  np.mean(np.abs(regressed_fourvectors[:,a] - target_fourvectors[:,a]))
 
 for a in [0, 2, 3]:
     pts = plt.figure()

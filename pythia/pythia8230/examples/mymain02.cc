@@ -169,7 +169,6 @@ int main( int argc, char * argv[] )
 				std::cout << pythia.event[iPart].daughterList()[i] << ", ";
 			std::cout<< std::endl;*/
         }
-		std::cout << pythia.event[bosonIdx].m() << "|";
 
 		//positive lepton
 		posTauIdx = pythia.event[bosonIdx].daughter1();
