@@ -1,0 +1,41 @@
+! SM Htautau production at the LHC
+! Roberval Walsh
+!
+Beams:idA = 2212 !beams are protons
+Beams:idB = 2212
+Beams:eCM = 13000. !centre of mass energy
+!
+HiggsSM:gg2H = on
+!
+Main:numberOfEvents = 10
+! Master switches
+ProcessLevel:resonanceDecays = on
+!
+PartonLevel:all = on !if off, generation stops before parton level events (partons are quarks and gluons)
+PartonLevel:FSR = off!final state radiation
+PartonLevel:ISR = on !initial state radiation
+!PartonLevel:MI = off !multiple interactions
+PartonLevel:Remnants = off !beam remnants
+!
+HadronLevel:all = on !if off, generation stops before hadron level steps
+HadronLevel:Hadronize = off
+HadronLevel:Decay = on
+HadronLevel:BoseEinstein = off
+!
+
+! Higgs parameters
+!25:m0 = 800. !mass of light CP-even Higgs 
+
+25:onMode = off !switches off all Higgs decay channels
+25:onIfMatch = 15 -15 !swiches back on higgs to tau pair
+
+
+15:onMode = on
+!15:onIfMatch 11 -12 16
+!15:onIfMatch 13 -14 16
+-15:onMode = on
+!-15:onIfMatch -11 12 -16
+!-15:onIfMatch -13 14 -16
+
+
+PDF:pSet = 2 !specifies the parton density for proton beams
