@@ -46,15 +46,27 @@ int main( int argc, char * argv[] )
   //bool Debug = false;
      
     Pythia pythia;
+
+    stringstream in_seed(argv[3]);
+    pythia.readString("Random:seed = " + in_seed.str());
      
     pythia.readFile(argv[1]); // looks at the .cmnd file for settings
-	std::string mass = std::string(argv[2]);
-	pythia.readString("25:m0 = " + mass);
+    istringstream in_mass(argv[2]);
+    int int_mass;
+    in_mass >> int_mass;
+    stringstream mass;
+    mass << int_mass;
+    stringstream massPlusOne;
+    massPlusOne << (int_mass + 1);
+    stringstream massMinusOne;
+    massMinusOne << (int_mass - 1);
+    pythia.readString("25:m0 = " + mass.str());
+    pythia.readString("25:mMin = " + massMinusOne.str());
+    pythia.readString("25:mMax = " + massPlusOne.str());
      
     pythia.init();  // pythia initialization   
     pythia.settings.listChanged(); // pythia status
     pythia.particleData.listChanged(); // pythia status
-	//pythia.readString("25:m0 = " + mass);
     int nEvents = pythia.mode("Main:numberOfEvents"); //the .cmnd file tells us of the value of Main:numberofEvents;
      
 // Fiducial cuts
@@ -147,8 +159,8 @@ int main( int argc, char * argv[] )
 
  // for every particle in the event
 //            if (((pythia.event[iPart].status() >0)&& (pythia.event[iPart].id() >8) && (pythia.event[iPart].id() !=21)) || pythia.event[iPart].id() ==25  || pythia.event[iPart].id() ==15 || pythia.event[iPart].id() ==-15 )
-/*
-            std::cout << "Particle " << iPart << "\t id: " << pythia.event[iPart].id() << "\t status: " << pythia.event[iPart].status() << 
+
+        /*    std::cout << "Particle " << iPart << "\t id: " << pythia.event[iPart].id() << "\t status: " << pythia.event[iPart].status() << 
 				"\t mass: " << pythia.event[iPart].m() << 
 				"\t mother1/2: " << pythia.event[iPart].mother1() << 
 				"/" << pythia.event[iPart].mother2() <<
@@ -157,6 +169,8 @@ int main( int argc, char * argv[] )
 				std::cout << pythia.event[iPart].daughterList()[i] << ", ";
 			std::cout<< std::endl;*/
         }
+		std::cout << pythia.event[bosonIdx].m() << "|";
+
 		//positive lepton
 		posTauIdx = pythia.event[bosonIdx].daughter1();
 		posTauNeutrinoIdx = pythia.event[posTauIdx].daughter1();

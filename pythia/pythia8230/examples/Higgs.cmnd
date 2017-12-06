@@ -7,7 +7,8 @@ Beams:eCM = 13000. !centre of mass energy
 !
 HiggsSM:gg2H = on
 !
-Main:numberOfEvents = 10
+Main:numberOfEvents = 200
+Random:setSeed = true
 ! Master switches
 ProcessLevel:resonanceDecays = on
 !
@@ -25,6 +26,7 @@ HadronLevel:BoseEinstein = off
 
 ! Higgs parameters
 !25:m0 = 800. !mass of light CP-even Higgs 
+!25:mWidth = 1.
 
 25:onMode = off !switches off all Higgs decay channels
 25:onIfMatch = 15 -15 !swiches back on higgs to tau pair
@@ -38,4 +40,4 @@ HadronLevel:BoseEinstein = off
 !-15:onIfMatch -13 14 -16
 
 
-PDF:pSet = 2 !specifies the parton density for proton beams
+PDF:pSet = 16 !specifies the parton density for proton beams
