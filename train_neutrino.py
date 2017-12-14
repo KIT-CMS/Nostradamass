@@ -263,20 +263,20 @@ def train_model(X, Y, model_filename = "toy_mass.h5"):
     
     # model def # energy: 10x40, tanh, mean_squared_error
     model = Sequential()
-    model.add(Dense(200, activation='relu', input_shape=(X.shape[1],)))
+    model.add(Dense(250, activation='relu', input_shape=(X.shape[1],)))
+    for a in range(5):
+        model.add(Dense(250, activation='relu'))
     for a in range(5):
         model.add(Dense(200, activation='relu'))
-    for a in range(5):
-        model.add(Dense(150, activation='relu'))
     for a in range(10):
-        model.add(Dense(100, activation='relu'))
+        model.add(Dense(130, activation='relu'))
     model.add(Dense(Y.shape[1], activation='linear'))
     model.compile(loss='mean_squared_error', optimizer='nadam')
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
     model.summary()
     model.fit(X, Y, # Training data
                 batch_size=40000, # Batch size
-                epochs=300, # Number of training epochs
+                epochs=400, # Number of training epochs
                 validation_split=0.1)
     model.save(model_filename)
     return model
@@ -357,6 +357,12 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
     for a in range(regressed_physfourvectors.shape[1]):
         pts = plt.figure()
         irange = None
+        if a==0:
+            irange = [0,500]
+        if a==1:
+            irange = [-8,8]
+        if a==2:
+            irange = [-4,4]
         if a==3:
             irange = [0,1100]
         n, bins, patches = plt.hist(target_physfourvectors[:,a], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
@@ -383,8 +389,14 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
     diff_fourvectors = regressed_physfourvectors-target_physfourvectors
     for a in range(diff_fourvectors.shape[1]):
         irange = None
+        if a==0:
+            irange = [-300,300]
+        if a==1:
+            irange = [-8,8]
+        if a==2:
+            irange = [-8,8]
         if a==3:
-            irange = [-800,800]
+            irange = [-500,500]
         pts = plt.figure()
         n, bins, patches = plt.hist(diff_fourvectors[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
         plt.savefig("diffvector-target-regressed"+str(a)+".png")
