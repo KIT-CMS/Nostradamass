@@ -80,7 +80,7 @@ def fake_met():
 def load_from_log(in_filename, out_filename):
     n_events = sum(1 for line in open(in_filename))
     
-    dim = 18
+    dim = 10
     targets = 2
     X = np.zeros([n_events, dim])
     Y = np.zeros([n_events, targets])
@@ -149,20 +149,20 @@ def load_from_log(in_filename, out_filename):
                             lepton_1.px,
                             lepton_1.py,
                             lepton_1.pz,
-                            -lepton_1.px,
-                            -lepton_1.py,
-                            -lepton_1.pz,
+                            #-lepton_1.px,
+                            #-lepton_1.py,
+                            #-lepton_1.pz,
                             lepton_2.e,
                             lepton_2.px,
                             lepton_2.py,
                             lepton_2.pz,
-                            -lepton_2.px,
-                            -lepton_2.py,
-                            -lepton_2.pz,
+                            #-lepton_2.px,
+                            #-lepton_2.py,
+                            #-lepton_2.pz,
                             met.px,
-                            met.py,
-                            -met.px,
-                            -met.py
+                            met.py#,
+                            #-met.px,
+                            #-met.py
                             ])
             #x = np.array([  lepton_1.pt+lepton_2.pt,
             #                dilepton.pt,
@@ -265,9 +265,11 @@ def train_model(X, Y, model_filename = "toy_mass.h5"):
     model = Sequential()
     model.add(Dense(200, activation='relu', input_shape=(X.shape[1],)))
     for a in range(5):
+        model.add(Dense(200, activation='relu'))
+    for a in range(5):
+        model.add(Dense(150, activation='relu'))
+    for a in range(10):
         model.add(Dense(100, activation='relu'))
-    for a in range(20):
-        model.add(Dense(50, activation='relu'))
     model.add(Dense(Y.shape[1], activation='linear'))
     model.compile(loss='mean_squared_error', optimizer='nadam')
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
