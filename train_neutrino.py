@@ -14,6 +14,15 @@ np.random.seed(1234)
 import pickle
 from os import environ
 environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
+environ['THEANO_FLAGS'] = 'device=gpu2'
+
+def norm_phi(phi):
+    if phi < -np.pi:
+        return norm_phi(phi+np.pi)
+    elif phi > np.pi:
+        return norm_phi(phi - np.pi)
+    else:
+        return phi
 
 def transform_fourvector(vin):
     cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
@@ -71,7 +80,7 @@ def fake_met():
 def load_from_log(in_filename, out_filename):
     n_events = sum(1 for line in open(in_filename))
     
-    dim = 12
+    dim = 18
     targets = 2
     X = np.zeros([n_events, dim])
     Y = np.zeros([n_events, targets])
@@ -127,6 +136,7 @@ def load_from_log(in_filename, out_filename):
             met= neutrino_sum #+ fake
     
             boson = lepton_1 + lepton_2 + neutrino_sum
+            dilepton = lepton_1 + lepton_2
             #mets.append(met)
             #x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py, met.pt2()])
             #x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py,#])
@@ -135,11 +145,38 @@ def load_from_log(in_filename, out_filename):
                     #  lepton_1.e**2, lepton_2.e**2, met.px**2, met.py**2
                         #, lepton_1_neutrinos, lepton_2_neutrinos
 #                        ])
-            x = np.array([lepton_1.pt+lepton_2.pt, lepton_1.e+lepton_2.e, lepton_1.e/(lepton_1.e+lepton_2.e), lepton_1.pt/(lepton_1.pt+lepton_2.pt), lepton_1.phi, lepton_1.eta, lepton_2.e/(lepton_1.e+lepton_2.e), lepton_2.pt/(lepton_1.pt+lepton_2.pt), lepton_2.phi, lepton_2.eta, met.pt, met.phi])
-            #y = np.array([neutrino_sum.e/boson.e, neutrino_sum.pz, neutrino_sum.pz/boson.pz, neutrino_sum.eta])
-            #y = np.array([neutrinos_1.e/boson.e, neutrinos_2.e/boson.e])
-            #y = np.array([neutrino_sum.e/boson.e]) # best choice so far
-            #y = np.array([neutrino_sum.e/boson.e, neutrino_sum.pz/np.sqrt((boson.px**2+boson.py**2+boson.pz**2))]) # nicht eindeutig
+            x = np.array([  lepton_1.e,
+                            lepton_1.px,
+                            lepton_1.py,
+                            lepton_1.pz,
+                            -lepton_1.px,
+                            -lepton_1.py,
+                            -lepton_1.pz,
+                            lepton_2.e,
+                            lepton_2.px,
+                            lepton_2.py,
+                            lepton_2.pz,
+                            -lepton_2.px,
+                            -lepton_2.py,
+                            -lepton_2.pz,
+                            met.px,
+                            met.py,
+                            -met.px,
+                            -met.py
+                            ])
+            #x = np.array([  lepton_1.pt+lepton_2.pt,
+            #                dilepton.pt,
+            #                dilepton.e,
+            #                lepton_1.e/dilepton.pt,
+            #                lepton_1.pt/dilepton.pt,
+            #                lepton_1.phi-dilepton.phi,
+            #                lepton_1.eta,
+            #                lepton_2.e/dilepton.e,
+            #                lepton_2.pt/dilepton.pt,
+            #                lepton_2.phi-dilepton.phi,
+            #                lepton_2.eta,
+            #                met.pt/dilepton.pt,
+            #                met.phi-dilepton.phi])
             y = np.array([neutrino_sum.e/boson.e, neutrino_sum.eta])
 
             X[line,:] = x
@@ -196,7 +233,8 @@ def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl"):
     from sklearn.preprocessing import StandardScaler, MinMaxScaler
     scaler = StandardScaler(with_mean=True, with_std=True)
     scaler.fit(raw_X)
-    X = scaler.transform(raw_X)
+    #X = scaler.transform(raw_X)
+    X = raw_X
     
     scalerTarget = StandardScaler(with_mean=True)
     scalerTarget.fit(raw_Y)
@@ -225,33 +263,18 @@ def train_model(X, Y, model_filename = "toy_mass.h5"):
     
     # model def # energy: 10x40, tanh, mean_squared_error
     model = Sequential()
-    model.add(Dense(100, activation='tanh', input_shape=(X.shape[1],)))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
-    #model.add(Dense(100, activation='tanh'))
+    model.add(Dense(200, activation='relu', input_shape=(X.shape[1],)))
+    for a in range(5):
+        model.add(Dense(100, activation='relu'))
+    for a in range(20):
+        model.add(Dense(50, activation='relu'))
     model.add(Dense(Y.shape[1], activation='linear'))
-    #model.compile(loss='logcosh', optimizer='adam')
     model.compile(loss='mean_squared_error', optimizer='nadam')
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
     model.summary()
     model.fit(X, Y, # Training data
                 batch_size=40000, # Batch size
-                epochs=100, # Number of training epochs
+                epochs=300, # Number of training epochs
                 validation_split=0.1)
     model.save(model_filename)
     return model
@@ -321,7 +344,7 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
     for a in range(regressed_fourvectors[0].shape[0]):
         irange = None
         if a==0:
-            irange = [-100,1100]
+            irange = [-100,2100]
         pts = plt.figure()
         n, bins, patches = plt.hist(regressed_fourvectors[:,a], 100, normed=1, color='red', alpha=1, range=irange, histtype='step', label='regressed')
         n, bins, patches = plt.hist(target_fourvectors[:,a], 100, normed=1, color='green', alpha=1, range=irange, histtype='step', label='target')
@@ -339,12 +362,27 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
         n, bins, patches = plt.hist(vis_physfourvectors[:,a], 100, normed=1, color='orange', alpha=0.5, range=irange, histtype='step', label='visible', linestyle='dotted')
         plt.legend()
         plt.savefig("phys-target-regressed"+str(a)+".png")
+
+    # neutrino energy
+    pts = plt.figure()
+    irange = None
+    n, bins, patches = plt.hist(M[:,3], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
+    n, bins, patches = plt.hist(pz, 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
+    plt.legend()
+    plt.savefig("neutrino-pz.png")
+
+    pts = plt.figure()
+    irange = None
+    n, bins, patches = plt.hist(M[:,3], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
+    n, bins, patches = plt.hist(energy, 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
+    plt.legend()
+    plt.savefig("neutrino-pz.png")
     
     diff_fourvectors = regressed_physfourvectors-target_physfourvectors
     for a in range(diff_fourvectors.shape[1]):
         irange = None
         if a==3:
-            irange = [0,1100]
+            irange = [-800,800]
         pts = plt.figure()
         n, bins, patches = plt.hist(diff_fourvectors[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
         plt.savefig("diffvector-target-regressed"+str(a)+".png")
