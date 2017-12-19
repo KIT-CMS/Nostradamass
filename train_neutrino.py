@@ -15,6 +15,7 @@ import pickle
 from os import environ
 environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
 environ['THEANO_FLAGS'] = 'device=gpu2'
+import keras.backend as K
 
 def norm_phi(phi):
     if phi < -np.pi:
@@ -30,7 +31,7 @@ def transform_fourvector(vin):
     return phys, cartesian
 
 def custom_loss(y_true, y_pred):
-    mean_squared_error = K.mean(K.square(y_pred[:,0] - y_true[:,0]) + K.square(y_pred[:,1] - y_true[:,1]) + K.square(y_pred[:,2] - y_true[:,2]) + K.square(y_pred[:,3] - y_true[:,3]))/4
+    mean_squared_error = K.mean(K.pow((y_pred - y_true), 4))
     return mean_squared_error
 
 def mass_loss(y_true, y_pred):
@@ -77,7 +78,7 @@ def fake_met():
         m = 0.0 # massless
         yield FourMomentum(m, pt, eta, phi, False)
 
-def load_from_log(in_filename, out_filename):
+def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     n_events = sum(1 for line in open(in_filename))
     
     dim = 10
@@ -198,13 +199,14 @@ def load_from_log(in_filename, out_filename):
     B = np.array([B[x] for x in selected_events])
     M = np.array([M[x] for x in selected_events])
     L = np.array([L[x] for x in selected_events])
-    cache_output = open('cache.pkl', 'wb')
-    pickle.dump(X, cache_output)
-    pickle.dump(Y, cache_output)
-    pickle.dump(B, cache_output)
-    pickle.dump(M, cache_output)
-    pickle.dump(L, cache_output)
-    cache_output.close()
+    if save_cache:
+        cache_output = open(os.path.join(out_folder, 'cache.pkl'), 'wb')
+        pickle.dump(X, cache_output)
+        pickle.dump(Y, cache_output)
+        pickle.dump(B, cache_output)
+        pickle.dump(M, cache_output)
+        pickle.dump(L, cache_output)
+        cache_output.close()
     return X, Y, B, M, L
 
 def load_from_pickle(in_filename):
@@ -228,7 +230,7 @@ def plot_inputs(Y):
         #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
     #        plt.savefig("inputs-"+ac+"-"+str(a)+".png")
 
-def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl"):
+def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl",output_folder=''):
     from sklearn.preprocessing import PolynomialFeatures
     from sklearn.preprocessing import StandardScaler, MinMaxScaler
     scaler = StandardScaler(with_mean=True, with_std=True)
@@ -241,13 +243,13 @@ def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl"):
     Y = scalerTarget.transform(raw_Y)
     
     # save transformations to pickle file
-    scaler_output = open(scaler_filename, 'wb')
+    scaler_output = open(os.path.join(out_folder, scaler_filename), 'wb')
     pickle.dump(scaler, scaler_output)
     pickle.dump(scalerTarget, scaler_output)
     scaler_output.close()
     return X, Y
 
-def train_model(X, Y, model_filename = "toy_mass.h5"):
+def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
     from keras.backend.tensorflow_backend import set_session
@@ -258,27 +260,28 @@ def train_model(X, Y, model_filename = "toy_mass.h5"):
     set_session(sess)
     
     
-    import keras.backend as K
     
     
     # model def # energy: 10x40, tanh, mean_squared_error
     model = Sequential()
-    model.add(Dense(250, activation='relu', input_shape=(X.shape[1],)))
-    for a in range(5):
-        model.add(Dense(250, activation='relu'))
-    for a in range(5):
-        model.add(Dense(200, activation='relu'))
+    model.add(Dense(400, activation='relu', input_shape=(X.shape[1],)))
     for a in range(10):
-        model.add(Dense(130, activation='relu'))
+        model.add(Dense(300, activation='relu'))
+    for a in range(10):
+        model.add(Dense(200, activation='relu'))
+    #for a in range(7):
+    #    model.add(Dense(200, activation='relu'))
+    #for a in range(12):
+    #    model.add(Dense(130, activation='relu'))
     model.add(Dense(Y.shape[1], activation='linear'))
-    model.compile(loss='mean_squared_error', optimizer='nadam')
+    model.compile(loss="mean_squared_error", optimizer='nadam')
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
     model.summary()
     model.fit(X, Y, # Training data
-                batch_size=40000, # Batch size
-                epochs=400, # Number of training epochs
+                batch_size=2000, # Batch size
+                epochs=30, # Number of training epochs
                 validation_split=0.1)
-    model.save(model_filename)
+    model.save(os.path.join(out_folder, model_filename))
     return model
 
 def predict(model, X):
@@ -294,28 +297,27 @@ def get_inverse(regressed_Y, scaler_target_filename = "scaler.pkl"):
     return scaled_Y
 
 #def plot(regressed_phys, raw_pred, target_phys, X, Y, B, M, L):
-def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
+def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
     for a in range(Y.shape[1]):
-        print "print a", a
         pts = plt.figure()
         arange = None
         n, bins, patches = plt.hist(regressed_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
         n, bins, patches = plt.hist(Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
-        plt.savefig("transform-target-regressed"+str(a)+".png")
+        plt.savefig(os.path.join(out_folder, "transform-target-regressed"+str(a)+".png"))
         plt.close()
     
     
     for a in range(Y.shape[1]):
-        print "print a", a
         pts = plt.figure()
         arange = None
         if a ==2:
             arange = [-3,3]
         n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
         n, bins, patches = plt.hist(raw_Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
-        plt.savefig("target-regressed"+str(a)+".png")
+        plt.savefig(os.path.join(out_folder, "target-regressed"+str(a)+".png"))
+        print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - raw_Y[:,a])
         plt.close()
-    
+ 
  #   for a in range(Y.shape[1]):
  #       pts = plt.figure()
  #       arange = [-3,3]
@@ -341,6 +343,8 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
     target_physfourvectors, target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in B])
 
     vis_physfourvectors, vis_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in L])
+    neutrino_target_physfourvectors, neutrino_target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in M])
+    neutrino_regressed_physfourvectors, neutrino_regressed_fourvectors = transform_fourvector([ FourMomentum(energy[i], M[i,1], M[i,2], pz[i]) for i in range(M.shape[0])])
 
     
     for a in range(regressed_fourvectors[0].shape[0]):
@@ -352,7 +356,7 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
         n, bins, patches = plt.hist(target_fourvectors[:,a], 100, normed=1, color='green', alpha=1, range=irange, histtype='step', label='target')
         n, bins, patches = plt.hist(vis_fourvectors[:,a], 100, normed=1, color='orange', alpha=1, range=irange, histtype='step', label='visible', linestyle='dotted')
         plt.legend()
-        plt.savefig("cartesian-target-regressed"+str(a)+".png")
+        plt.savefig(os.path.join(out_folder, "cartesian-target-regressed"+str(a)+".png"))
     
     for a in range(regressed_physfourvectors.shape[1]):
         pts = plt.figure()
@@ -369,25 +373,45 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
         n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
         n, bins, patches = plt.hist(vis_physfourvectors[:,a], 100, normed=1, color='orange', alpha=0.5, range=irange, histtype='step', label='visible', linestyle='dotted')
         plt.legend()
-        plt.savefig("phys-target-regressed"+str(a)+".png")
-
-    # neutrino energy
-    pts = plt.figure()
-    irange = None
-    n, bins, patches = plt.hist(M[:,3], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
-    n, bins, patches = plt.hist(pz, 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
-    plt.legend()
-    plt.savefig("neutrino-pz.png")
-
-    pts = plt.figure()
-    irange = None
-    n, bins, patches = plt.hist(M[:,3], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
-    n, bins, patches = plt.hist(energy, 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
-    plt.legend()
-    plt.savefig("neutrino-pz.png")
+        plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".png"))
+    print 'target neutrino'
+    print neutrino_regressed_fourvectors
+    print neutrino_target_fourvectors
+    # neutrino target/result
+    for a in range(neutrino_regressed_fourvectors[0].shape[0]):
+        irange = None
+        if a==0:
+            irange = [-100,2100]
+        pts = plt.figure()
+        n, bins, patches = plt.hist(neutrino_regressed_fourvectors[:,a], 100, normed=1, color='red', alpha=1, range=irange, histtype='step', label='regressed')
+        n, bins, patches = plt.hist(neutrino_target_fourvectors[:,a], 100, normed=1, color='green', alpha=1, range=irange, histtype='step', label='target')
+        print 'neutrino cartesian resolution ', a, ': ', np.std(neutrino_regressed_fourvectors[:,a] - neutrino_target_fourvectors[:,a])
+        plt.legend()
+        plt.savefig(os.path.join(out_folder, "neutrino-cartesian-target-regressed"+str(a)+".png"))
     
-    diff_fourvectors = regressed_physfourvectors-target_physfourvectors
-    for a in range(diff_fourvectors.shape[1]):
+    for a in range(neutrino_regressed_physfourvectors.shape[1]):
+        pts = plt.figure()
+        irange = None
+        if a==0:
+            irange = [0,500]
+        if a==1:
+            irange = [-8,8]
+        if a==2:
+            irange = [-4,4]
+        if a==3:
+            irange = [0,1100]
+        n, bins, patches = plt.hist(neutrino_target_physfourvectors[:,a], 100, normed=1, color='green', alpha=0.75, range=irange, histtype='step', label='target')
+        n, bins, patches = plt.hist(neutrino_regressed_physfourvectors[:,a], 100, normed=1, color='red', alpha=0.75, range=irange, histtype='step', label='regressed')
+        print 'neutrino phys resolution ', a, ': ', np.std(neutrino_regressed_physfourvectors[:,a] - neutrino_target_physfourvectors[:,a])
+        plt.legend()
+        plt.savefig(os.path.join(out_folder, "neutrino-phys-target-regressed"+str(a)+".png"))
+
+    diff_fourvectors = regressed_fourvectors-target_fourvectors
+    
+    diff_physfourvectors = regressed_physfourvectors-target_physfourvectors
+    diff_physfourvectors = np.array([diff_physfourvectors[i] for i in range(regressed_physfourvectors.shape[0]) if regressed_physfourvectors[i][3]>0])
+
+    for a in range(diff_physfourvectors.shape[1]):
         irange = None
         if a==0:
             irange = [-300,300]
@@ -398,21 +422,33 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L):
         if a==3:
             irange = [-500,500]
         pts = plt.figure()
+        n, bins, patches = plt.hist(diff_physfourvectors[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
+        plt.savefig(os.path.join(out_folder, "diffvector-phys-target-regressed"+str(a)+".png"))
+        print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
+
+    for a in range(diff_fourvectors.shape[1]):
+        irange = None
+        pts = plt.figure()
         n, bins, patches = plt.hist(diff_fourvectors[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
-        plt.savefig("diffvector-target-regressed"+str(a)+".png")
-        print "diffvector mean ", a, np.mean(diff_fourvectors[:,a]), " stddev " , np.std(diff_fourvectors[:,a])
+        plt.savefig(os.path.join(out_folder, "diffvector-cartesian-target-regressed"+str(a)+".png"))
+        print "cartesian diffvector mean ", a, np.mean(diff_fourvectors[:,a]), " stddev " , np.std(diff_fourvectors[:,a])
     
 if __name__ == '__main__':
     in_filename = sys.argv[1]
+    out_folder = sys.argv[2]
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
     if in_filename[-4:] == ".log":
-        raw_X, raw_Y, B, M, L = load_from_log(in_filename, "pickle.pkl")
+        raw_X, raw_Y, B, M, L = load_from_log(in_filename, "pickle.pkl", out_folder=out_folder, save_cache=True)
     elif in_filename[-4:] == ".pkl":
         raw_X, raw_Y, B, M, L = load_from_pickle(in_filename)
     X, Y = get_scaled(raw_X, raw_Y)
-    model = train_model(X, Y)
+    model = train_model(X, Y, out_folder=out_folder)
     regressed_Y = predict(model, X)
-    scaled_Y = get_inverse(regressed_Y)
-    plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L)
+    scaled_Y = get_inverse(regressed_Y, scaler_target_filename = os.path.join(out_folder, 'scaler.pkl'))
+    print np.amax(scaled_Y[:,1])
+    print np.amin(scaled_Y[:,1])
+    plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder)
     # raw_X unscaled
     # raw_Y unscaled
     # X input for DNN
