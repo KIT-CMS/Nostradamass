@@ -134,36 +134,20 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     
             #fake = fake_met.next()
             neutrino_sum = posTauInvis + negTauInvis 
-            met= neutrino_sum #+ fake
+            met= neutrino_sum
     
             boson = lepton_1 + lepton_2 + neutrino_sum
             dilepton = lepton_1 + lepton_2
-            #mets.append(met)
-            #x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py, met.pt2()])
-            #x = np.array([lepton_1.e, lepton_1.px, lepton_1.py, lepton_1.pz, lepton_2.e, lepton_2.px, lepton_2.py, lepton_2.pz, met.px, met.py,#])
-                    #    lepton_1.px**2, lepton_1.py**2, lepton_1.pz**2,
-                    #    lepton_2.px**2, lepton_2.py**2, lepton_2.pz**2,
-                    #  lepton_1.e**2, lepton_2.e**2, met.px**2, met.py**2
-                        #, lepton_1_neutrinos, lepton_2_neutrinos
-#                        ])
             x = np.array([  lepton_1.e,
                             lepton_1.px,
                             lepton_1.py,
                             lepton_1.pz,
-                            #-lepton_1.px,
-                            #-lepton_1.py,
-                            #-lepton_1.pz,
                             lepton_2.e,
                             lepton_2.px,
                             lepton_2.py,
                             lepton_2.pz,
-                            #-lepton_2.px,
-                            #-lepton_2.py,
-                            #-lepton_2.pz,
                             met.px,
-                            met.py#,
-                            #-met.px,
-                            #-met.py
+                            met.py
                             ])
             #x = np.array([  lepton_1.pt+lepton_2.pt,
             #                dilepton.pt,
@@ -254,6 +238,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     from keras.layers import Dense, Dropout
     from keras.backend.tensorflow_backend import set_session
     import tensorflow as tf
+    #from keras.layers.normalization import BatchNormalization
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.3
     sess = tf.Session(config=config)
@@ -264,11 +249,12 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     
     # model def # energy: 10x40, tanh, mean_squared_error
     model = Sequential()
-    model.add(Dense(400, activation='relu', input_shape=(X.shape[1],)))
-    for a in range(10):
-        model.add(Dense(300, activation='relu'))
-    for a in range(10):
-        model.add(Dense(200, activation='relu'))
+    model.add(Dense(100, activation='relu', input_shape=(X.shape[1],)))
+    for a in range(25):
+        model.add(Dense(100, activation='relu'))
+        #model.add(BatchNormalization())
+#    for a in range(10):
+#        model.add(Dense(200, activation='relu'))
     #for a in range(7):
     #    model.add(Dense(200, activation='relu'))
     #for a in range(12):
@@ -277,10 +263,13 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     model.compile(loss="mean_squared_error", optimizer='nadam')
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
     model.summary()
+    from keras.callbacks import EarlyStopping
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
-                batch_size=2000, # Batch size
-                epochs=30, # Number of training epochs
-                validation_split=0.1)
+                batch_size=20000, # Batch size
+                epochs=1000, # Number of training epochs
+                validation_split=0.1,
+                callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
 
