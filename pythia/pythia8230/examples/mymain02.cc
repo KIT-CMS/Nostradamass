@@ -40,11 +40,6 @@ void write_particles(std::vector<int> &in, Event &e)
 
 int main( int argc, char * argv[] )
 {
-     
-//Starting Pythia
-
-  //bool Debug = false;
-     
     Pythia pythia;
 
     stringstream in_seed(argv[3]);
@@ -69,62 +64,6 @@ int main( int argc, char * argv[] )
     pythia.particleData.listChanged(); // pythia status
     int nEvents = pythia.mode("Main:numberOfEvents"); //the .cmnd file tells us of the value of Main:numberofEvents;
      
-// Fiducial cuts
-//  float etamax = 2.4; //pseudorapidity must be below etamax, otherwise muons are outside detector range
-//  float ptmin = 15.0; //we only accept higgs-decay-candidate muons whose pt is above ptmin.
-     
-// pi constant
-//  float pi = 3.14159276;
-  //float pi = 4.*atan(1);
-         
-//Creating a root file with a tree tMuon        
-//  string cmndFilename = argv[1];
-//  string rootFilename = cmndFilename.replace(cmndFilename.length()-4,4,"root"); 
-//  TFile * f = new TFile(rootFilename.c_str(),"recreate"); //the root file containing the 
-                                                          //tree now has the same name as the cmnd file that was used to create it
-//Creating a root tree tHiggs
-//  TTree * tHiggs = new TTree("tHiggs", "Higgs candidate muon pairs");
-//  int idHiggs ;
-//    float pxHiggs, pyHiggs, pzHiggs, enHiggs, massHiggs;
-//    float pxPosTau, pyPosTau, pzPosTau, enPosTau;
-//    float pxNegTau, pyNegTau, pzNegTau, enNegTau;
-//  float cosDecayTheta;
-//  float pxDimuon, pyDimuon, pzDimuon, enDimuon, massDimuon;
-
-// tree branches ---->
-
-//  tHiggs -> Branch("i", &eventCounter, "i/I"); // event number
-//  tHiggs -> Branch("IsEventSelected", &isSelected, "IsEventSelected/O" ); // boolean variable 
-//  
-//  // Higgs boson kinematics
-//  tHiggs -> Branch("HiggsID", &idHiggs, "HiggsID/I" );
-//  tHiggs -> Branch("PxHiggs", &pxHiggs, "PxHiggs/F" );
-//  tHiggs -> Branch("PyHiggs", &pyHiggs, "PyHiggs/F" );
-//  tHiggs -> Branch("PzHiggs", &pzHiggs, "PzHiggs/F" );
-//  
-  // ******************************************
-  // add new branch to store Higgs boson mass 
-  // ******************************************
-
-//  tHiggs -> Branch("PxNegMuon", &pxNegMuon, "PxNegMuon/F");
-//  tHiggs -> Branch("PyNegMuon", &pyNegMuon, "PyNegMuon/F");
-//  tHiggs -> Branch("PzNegMuon", &pzNegMuon, "PzNegMuon/F");
-//  tHiggs -> Branch("EnNegMuon", &enNegMuon, "EnNegMuon/F");
-
-  // ******************************************
-  // add new branches to store 4-momentum 
-  // of the positive muon
-  // ******************************************
-
-  // *******************************************
-  // add new branches to store 4-momentum of the 
-  // dimuon system.
-  // -------------------------------------------
-  // not obligatory :
-  // calculate cosine of the Higgs decay angle 
-  // (theta*) definition of this variable can be 
-  // found in the exercise sheet  
-  // *******************************************
 	int negTauIdx, posTauIdx;
 	int negTauNeutrinoIdx, posTauNeutrinoIdx;
 	int negLepNeutrinoIdx, posLepNeutrinoIdx;
@@ -137,37 +76,11 @@ int main( int argc, char * argv[] )
 		posTauDaughters.clear();
 		negTauVis.clear();
 		posTauVis.clear();
-        //std::cout << " _____________next event ___________" << iEvent << std::endl;
-        // Generate event
         pythia.next();
         for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
         {
 			if (pythia.event[iPart].id() == 25) // Boson
 				bosonIdx = iPart;
-//			break;	
-			// identify particle numbers for
-			// Boson
-			//
-			// positive visible lepton
-			// tau neutrino
-			// anti-neutrino to visible lepton
-			//
-			// negative visible lepton
-			// anti-tau neutrino
-			// neutrino to visible lepton
-
-
- // for every particle in the event
-//            if (((pythia.event[iPart].status() >0)&& (pythia.event[iPart].id() >8) && (pythia.event[iPart].id() !=21)) || pythia.event[iPart].id() ==25  || pythia.event[iPart].id() ==15 || pythia.event[iPart].id() ==-15 )
-
-        /*    std::cout << "Particle " << iPart << "\t id: " << pythia.event[iPart].id() << "\t status: " << pythia.event[iPart].status() << 
-				"\t mass: " << pythia.event[iPart].m() << 
-				"\t mother1/2: " << pythia.event[iPart].mother1() << 
-				"/" << pythia.event[iPart].mother2() <<
-				"\t daughterList: ";
-			for(size_t i = 0; i < pythia.event[iPart].daughterList().size(); ++i)
-				std::cout << pythia.event[iPart].daughterList()[i] << ", ";
-			std::cout<< std::endl;*/
         }
 
 		//positive lepton
@@ -258,14 +171,7 @@ int main( int argc, char * argv[] )
 		std::cout << std::endl;
 
   }     
-  
-    
   //pythia.statistics();
-  
-  
   return 0;
 
 }
-
-// _________END_OF_PROGRAM_____________________
-

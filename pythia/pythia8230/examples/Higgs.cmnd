@@ -7,7 +7,7 @@ Beams:eCM = 13000. !centre of mass energy
 !
 HiggsSM:gg2H = on
 !
-Main:numberOfEvents = 200
+Main:numberOfEvents = 100000
 Random:setSeed = true
 ! Master switches
 ProcessLevel:resonanceDecays = on
