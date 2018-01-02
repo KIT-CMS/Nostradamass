@@ -14,7 +14,7 @@ np.random.seed(1234)
 import pickle
 from os import environ
 environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
-environ['THEANO_FLAGS'] = 'device=gpu2'
+environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
 
 def norm_phi(phi):
@@ -91,11 +91,6 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     genmass = np.zeros([n_events, 4])
     DM = n_events * [None]
     
-    #fake_met = fake_met()
-    mets = []
-    checks = []
-    
-    
     with open(in_filename, 'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter='|')
         for line, row in enumerate(reader):
@@ -114,7 +109,6 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
             negTauInvis = create_FourMomentum(row[5]+ row[6])
             negTauNNeutrinos = count_neutrinos(row[6])
             negTauDecayType = get_decay(row[6])
-            checks.append( [posTauVis, posTauInvis,  negTauVis, negTauInvis] )
             if posTauNNeutrinos >= negTauNNeutrinos:
                 lepton_1 = posTauVis 
                 lepton_2 = negTauVis
@@ -137,7 +131,7 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
             met= neutrino_sum
     
             boson = lepton_1 + lepton_2 + neutrino_sum
-            dilepton = lepton_1 + lepton_2
+            #dilepton = lepton_1 + lepton_2
             x = np.array([  lepton_1.e,
                             lepton_1.px,
                             lepton_1.py,
@@ -240,23 +234,23 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     import tensorflow as tf
     #from keras.layers.normalization import BatchNormalization
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.3
+    config.gpu_options.per_process_gpu_memory_fraction = 0.9
     sess = tf.Session(config=config)
     set_session(sess)
     
     
     
-    
+  
     # model def # energy: 10x40, tanh, mean_squared_error
     model = Sequential()
-    model.add(Dense(100, activation='relu', input_shape=(X.shape[1],)))
-    for a in range(25):
-        model.add(Dense(100, activation='relu'))
+    model.add(Dense(500, activation='linear', input_shape=(X.shape[1],)))
+    for a in range(0):
+        model.add(Dense(1000, activation='relu'))
         #model.add(BatchNormalization())
-#    for a in range(10):
-#        model.add(Dense(200, activation='relu'))
-    #for a in range(7):
-    #    model.add(Dense(200, activation='relu'))
+    for a in range(20):
+        model.add(Dense(500, activation='relu'))
+    model.add(Dense(500, activation='linear'))
+    #for a in range(2):
     #for a in range(12):
     #    model.add(Dense(130, activation='relu'))
     model.add(Dense(Y.shape[1], activation='linear'))
@@ -264,11 +258,11 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
     model.summary()
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto')
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
-                batch_size=20000, # Batch size
+                batch_size=10000, # Batch size
                 epochs=1000, # Number of training epochs
-                validation_split=0.1,
+                validation_split=0.2,
                 callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
