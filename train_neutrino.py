@@ -227,7 +227,7 @@ def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl",output_folder=''):
     scaler_output.close()
     return X, Y
 
-def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
+def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
     from keras.backend.tensorflow_backend import set_session
@@ -239,28 +239,31 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder=''):
     set_session(sess)
     
     
-    
-  
-    # model def # energy: 10x40, tanh, mean_squared_error
-    model = Sequential()
-    model.add(Dense(500, activation='linear', input_shape=(X.shape[1],)))
-    for a in range(0):
-        model.add(Dense(1000, activation='relu'))
-        #model.add(BatchNormalization())
-    for a in range(20):
-        model.add(Dense(500, activation='relu'))
-    model.add(Dense(500, activation='linear'))
-    #for a in range(2):
-    #for a in range(12):
-    #    model.add(Dense(130, activation='relu'))
-    model.add(Dense(Y.shape[1], activation='linear'))
-    model.compile(loss="mean_squared_error", optimizer='nadam')
-    #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
+    if previous_model == None:    
+        # model def # energy: 10x40, tanh, mean_squared_error
+        model = Sequential()
+        model.add(Dense(500, activation='linear', input_shape=(X.shape[1],)))
+        for a in range(0):
+            model.add(Dense(1000, activation='relu'))
+            #model.add(BatchNormalization())
+        for a in range(20):
+            model.add(Dense(800, activation='relu'))
+        model.add(Dense(500, activation='linear'))
+        #for a in range(2):
+        #for a in range(12):
+        #    model.add(Dense(130, activation='relu'))
+        model.add(Dense(Y.shape[1], activation='linear'))
+        model.compile(loss="mean_squared_error", optimizer='nadam')
+        #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
+    else:
+        from eval_masspoint import load_model
+        model = load_model(previous_model)
+
     model.summary()
     from keras.callbacks import EarlyStopping
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
-                batch_size=10000, # Batch size
+                batch_size=100000, # Batch size
                 epochs=1000, # Number of training epochs
                 validation_split=0.2,
                 callbacks = [early_stopping])
@@ -419,6 +422,11 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
 if __name__ == '__main__':
     in_filename = sys.argv[1]
     out_folder = sys.argv[2]
+    if len(sys.argv) > 3:
+        previous_model = sys.argv[3]
+    else:
+        previous_model = None
+    print "previous: ", previous_model
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
     if in_filename[-4:] == ".log":
@@ -426,7 +434,7 @@ if __name__ == '__main__':
     elif in_filename[-4:] == ".pkl":
         raw_X, raw_Y, B, M, L = load_from_pickle(in_filename)
     X, Y = get_scaled(raw_X, raw_Y)
-    model = train_model(X, Y, out_folder=out_folder)
+    model = train_model(X, Y, out_folder=out_folder, previous_model = previous_model)
     regressed_Y = predict(model, X)
     scaled_Y = get_inverse(regressed_Y, scaler_target_filename = os.path.join(out_folder, 'scaler.pkl'))
     print np.amax(scaled_Y[:,1])

@@ -5,9 +5,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from train_neutrino import transform_fourvector
-
+import sys, os
 processes = ["ggH", "DY"]
 genmasses = [125, 91]
+modelpath = sys.argv[1]
 for process, genmass in zip(processes, genmasses):
     #process = "DY"
     filename = "data/" + process+".csv"
@@ -61,13 +62,13 @@ for process, genmass in zip(processes, genmasses):
     #X=poly.fit_transform(X)
 
     import pickle
-    pkl_file = open('scaler.pkl', 'rb')
+    pkl_file = open(os.path.join(modelpath, 'scaler.pkl'), 'rb')
     scaler = pickle.load(pkl_file)
     scalerTarget = pickle.load(pkl_file)
     #X = scaler.transform(X)
 
     from keras.models import load_model
-    model = load_model('toy_mass.h5')
+    model = load_model(os.path.join(modelpath, "toy_mass.h5"))
 
     regressed_Y = model.predict(X)
     scaled_Y = scalerTarget.inverse_transform(regressed_Y)
