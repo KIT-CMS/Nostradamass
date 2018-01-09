@@ -242,12 +242,19 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     if previous_model == None:    
         # model def # energy: 10x40, tanh, mean_squared_error
         model = Sequential()
-        model.add(Dense(500, activation='linear', input_shape=(X.shape[1],)))
-        for a in range(0):
-            model.add(Dense(1000, activation='relu'))
+        model.add(Dense(1000, activation='relu', input_shape=(X.shape[1],)))
+        model.add(Dense(900, activation='relu'))
+        model.add(Dense(800, activation='relu'))
+        model.add(Dense(700, activation='relu'))
+        model.add(Dense(600, activation='relu'))
+        model.add(Dense(500, activation='relu'))
+        model.add(Dense(400, activation='relu'))
+        model.add(Dense(300, activation='relu'))
+        #for a in range(10):
+        #    model.add(Dense(1000, activation='relu'))
             #model.add(BatchNormalization())
         for a in range(20):
-            model.add(Dense(800, activation='relu'))
+            model.add(Dense(200, activation='relu'))
         model.add(Dense(500, activation='linear'))
         #for a in range(2):
         #for a in range(12):
@@ -264,9 +271,9 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
                 batch_size=100000, # Batch size
-                epochs=1000, # Number of training epochs
-                validation_split=0.2,
-                callbacks = [early_stopping])
+                epochs=900, # Number of training epochs
+                validation_split=0.1)#,
+   #             callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
 
