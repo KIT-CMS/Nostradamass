@@ -89,8 +89,8 @@ for process, genmass in zip(processes, genmasses):
     
     
 
-    print process, " toy mean: ", np.mean(regressed_physfourvectors[:,3]), ", toy resolution: ", np.mean(np.abs(regressed_physfourvectors[:,3]-genmass))
-    print process, " svfit mean: ", np.mean(svfit[:,3]), ", svfit resolution: ", np.mean(np.abs(svfit[:,3]-genmass))
+    print process, " toy mean: ", np.mean(regressed_physfourvectors[:,3]), 'toy median', np.median(regressed_physfourvectors[:,3]), ", toy resolution: ", np.std(regressed_physfourvectors[:,3])
+    print process, " svfit mean: ", np.mean(svfit[:,3]), "svfit median", np.median(svfit[:,3]), ", svfit resolution: ", np.mean(svfit[:,3])
     for a in range(4):
         pts = plt.figure()
         irange = None

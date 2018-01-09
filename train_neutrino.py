@@ -234,7 +234,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     import tensorflow as tf
     #from keras.layers.normalization import BatchNormalization
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.9
+    config.gpu_options.per_process_gpu_memory_fraction = 1.0
     sess = tf.Session(config=config)
     set_session(sess)
     
@@ -270,8 +270,8 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     from keras.callbacks import EarlyStopping
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
-                batch_size=100000, # Batch size
-                epochs=900, # Number of training epochs
+                batch_size=200000, # Batch size
+                epochs=600, # Number of training epochs
                 validation_split=0.1)#,
    #             callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
