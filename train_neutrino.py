@@ -31,19 +31,54 @@ def transform_fourvector(vin):
     return phys, cartesian
 
 def custom_loss(y_true, y_pred):
-    mean_squared_error = K.mean(K.pow((y_pred - y_true), 4))
+    mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
     return mean_squared_error
 
 def mass_loss(y_true, y_pred):
-    zeros =  K.zeros_like(y_pred[:,0])
-    #raise Exception(K.greater(zeros, (K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3]))))
-    #raise Exception(tf.shape(tf.where(K.greater(zeros, ((K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3]))))))[0])
-    mean_squared_error = K.mean(K.square(y_pred - y_true))
-    pred_masses = K.square(y_pred[:,0]) - K.square(y_pred[:,1])  - K.square(y_pred[:,2]) - K.square(y_pred[:,3])
-    true_masses = K.square(y_true[:,0]) - K.square(y_true[:,1])  - K.square(y_true[:,2]) - K.square(y_true[:,3])
-    penalty = K.abs(K.mean(true_masses - pred_masses))
-    pred_masses_negative = - pred_masses * tf.to_float(tf.shape(tf.where(K.greater(zeros, pred_masses)))) 
-    return penalty + mean_squared_error #mean_squared_error#penalty
+    mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
+    return mean_squared_error
+
+    m_squared = K.square(y_true[:,10])
+    e_vis = y_true[:,2] + y_true[:,6]
+
+    #mass_fraction = y_true[:,0]
+    mass_fraction = y_pred[:,0]
+    F = K.ones_like(mass_fraction) - mass_fraction
+    e_neutrino = e_vis * mass_fraction * K.pow(F, -1)
+
+    ##ones = np.ones([scaled_Y.shape[0]])
+    ##F = np.subtract( ones, scaled_Y[:,0])
+    ##energy = np.multiply(scaled_Y[:,0], L[:,0])
+    ##energy /= F
+    #eta = y_true[:,1]
+    eta = y_pred[:,1]
+    #eta = K.clip(eta, -10, 10)
+    sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
+    pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
+    #pz = K.clip(pz, -3000, 3000)
+    ##pz = np.sinh(scaled_Y[:,1]) * np.sqrt( np.square(M[:,1]) + np.square(M[:,2]))
+
+    e_squared = K.square(e_vis + e_neutrino)
+    p_squared = (K.square(y_true[:,3] + y_true[:,7] + y_true[:,11]) +
+                K.square(y_true[:,4] + y_true[:,8] + y_true[:,12]) +
+                K.square(y_true[:,5] + y_true[:,9] + pz))
+
+    m_loss = K.abs(e_squared - p_squared - m_squared)/m_squared
+    return K.mean(m_loss)
+
+                            #0 neutrino_sum.e/boson.e
+                            #1 neutrino_sum.eta
+                            #2 lepton_1.e,
+                            #3 lepton_1.px,
+                            #4 lepton_1.py,
+                            #5 lepton_1.pz,
+                            #6 lepton_2.e,
+                            #7 lepton_2.px,
+                            #8 lepton_2.py,
+                            #9 lepton_2.pz,
+                            #10 mass,
+                            #11 met.px,
+                            #12 met.py
 
 def mass_diff(y_true, y_pred):
     #raise Exception(y_pred)
@@ -82,7 +117,7 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     n_events = sum(1 for line in open(in_filename))
     
     dim = 10
-    targets = 2
+    targets = 13
     X = np.zeros([n_events, dim])
     Y = np.zeros([n_events, targets])
     B = np.zeros([n_events, 4])
@@ -156,7 +191,21 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
             #                lepton_2.eta,
             #                met.pt/dilepton.pt,
             #                met.phi-dilepton.phi])
-            y = np.array([neutrino_sum.e/boson.e, neutrino_sum.eta])
+            #y = np.array([neutrino_sum.e/boson.e,
+            #                neutrino_sum.eta])
+            y = np.array([neutrino_sum.e/boson.e,
+                            neutrino_sum.eta,
+                            lepton_1.e,
+                            lepton_1.px,
+                            lepton_1.py,
+                            lepton_1.pz,
+                            lepton_2.e,
+                            lepton_2.px,
+                            lepton_2.py,
+                            lepton_2.pz,
+                            mass,
+                            met.px,
+                            met.py ])
 
             X[line,:] = x
             Y[line,:] = y
@@ -218,8 +267,8 @@ def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl",output_folder=''):
     
     scalerTarget = StandardScaler(with_mean=True)
     scalerTarget.fit(raw_Y)
-    Y = scalerTarget.transform(raw_Y)
-    
+    #Y = scalerTarget.transform(raw_Y)
+    Y = raw_Y 
     # save transformations to pickle file
     scaler_output = open(os.path.join(out_folder, scaler_filename), 'wb')
     pickle.dump(scaler, scaler_output)
@@ -255,13 +304,13 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
             #model.add(BatchNormalization())
         for a in range(20):
             model.add(Dense(200, activation='relu'))
-        model.add(Dense(500, activation='linear'))
+#        model.add(Dense(200, activation='linear'))
         #for a in range(2):
         #for a in range(12):
         #    model.add(Dense(130, activation='relu'))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss="mean_squared_error", optimizer='nadam')
-        #model.compile(loss='mean_squared_error', optimizer='adam', metrics = [mass_loss])
+        model.compile(loss=mass_loss, optimizer='nadam', metrics = [custom_loss])
+        #model.compile(loss=custom_loss, optimizer='adam', metrics = [mass_loss])
     else:
         from eval_masspoint import load_model
         model = load_model(previous_model)
@@ -270,9 +319,9 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     from keras.callbacks import EarlyStopping
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
-                batch_size=200000, # Batch size
-                epochs=600, # Number of training epochs
-                validation_split=0.1)#,
+                batch_size=50000, # Batch size
+                epochs=10, # Number of training epochs
+                validation_split=0.1)
    #             callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
@@ -291,22 +340,20 @@ def get_inverse(regressed_Y, scaler_target_filename = "scaler.pkl"):
 
 #def plot(regressed_phys, raw_pred, target_phys, X, Y, B, M, L):
 def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
-    for a in range(Y.shape[1]):
-        pts = plt.figure()
-        arange = None
-        n, bins, patches = plt.hist(regressed_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
-        n, bins, patches = plt.hist(Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
-        plt.savefig(os.path.join(out_folder, "transform-target-regressed"+str(a)+".png"))
-        plt.close()
+#    for a in range(Y.shape[1]):
+#        pts = plt.figure()
+#        arange = None
+#        n, bins, patches = plt.hist(regressed_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
+#        n, bins, patches = plt.hist(Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
+#        plt.savefig(os.path.join(out_folder, "transform-target-regressed"+str(a)+".png"))
+#        plt.close()
     
     
-    for a in range(Y.shape[1]):
+    for a in [0,1]:
         pts = plt.figure()
         arange = None
-        if a ==2:
-            arange = [-3,3]
+#        n, bins, patches = plt.hist(raw_Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
         n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
-        n, bins, patches = plt.hist(raw_Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
         plt.savefig(os.path.join(out_folder, "target-regressed"+str(a)+".png"))
         print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - raw_Y[:,a])
         plt.close()
@@ -440,10 +487,14 @@ if __name__ == '__main__':
         raw_X, raw_Y, B, M, L = load_from_log(in_filename, "pickle.pkl", out_folder=out_folder, save_cache=True)
     elif in_filename[-4:] == ".pkl":
         raw_X, raw_Y, B, M, L = load_from_pickle(in_filename)
-    X, Y = get_scaled(raw_X, raw_Y)
+    #X, Y = get_scaled(raw_X, raw_Y)
+    X, Y = raw_X, raw_Y
     model = train_model(X, Y, out_folder=out_folder, previous_model = previous_model)
     regressed_Y = predict(model, X)
-    scaled_Y = get_inverse(regressed_Y, scaler_target_filename = os.path.join(out_folder, 'scaler.pkl'))
+    import pprint
+    pprint.pprint(regressed_Y)
+    #scaled_Y = get_inverse(regressed_Y, scaler_target_filename = os.path.join(out_folder, 'scaler.pkl'))
+    scaled_Y = regressed_Y
     print np.amax(scaled_Y[:,1])
     print np.amin(scaled_Y[:,1])
     plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder)
