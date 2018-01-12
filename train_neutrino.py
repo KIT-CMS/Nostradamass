@@ -35,8 +35,8 @@ def custom_loss(y_true, y_pred):
     return mean_squared_error
 
 def mass_loss(y_true, y_pred):
-    mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
-    return mean_squared_error
+    #mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
+    #return mean_squared_error
 
     m_squared = K.square(y_true[:,10])
     e_vis = y_true[:,2] + y_true[:,6]
@@ -55,6 +55,7 @@ def mass_loss(y_true, y_pred):
     #eta = K.clip(eta, -10, 10)
     sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
     pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
+
     #pz = K.clip(pz, -3000, 3000)
     ##pz = np.sinh(scaled_Y[:,1]) * np.sqrt( np.square(M[:,1]) + np.square(M[:,2]))
 
@@ -309,8 +310,8 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
         #for a in range(12):
         #    model.add(Dense(130, activation='relu'))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=mass_loss, optimizer='nadam', metrics = [custom_loss])
-        #model.compile(loss=custom_loss, optimizer='adam', metrics = [mass_loss])
+        model.compile(loss=mass_loss, optimizer='adam', metrics = [custom_loss])
+        #model.compile(loss=custom_loss, optimizer='nadam', metrics = [mass_loss])
     else:
         from eval_masspoint import load_model
         model = load_model(previous_model)
@@ -320,7 +321,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
     model.fit(X, Y, # Training data
                 batch_size=50000, # Batch size
-                epochs=10, # Number of training epochs
+                epochs=200, # Number of training epochs
                 validation_split=0.1)
    #             callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
@@ -352,12 +353,12 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
     for a in [0,1]:
         pts = plt.figure()
         arange = None
-#        n, bins, patches = plt.hist(raw_Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
+        n, bins, patches = plt.hist(raw_Y[:,a], 150, normed=1, facecolor='green', alpha=0.75, range = arange)
         n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, facecolor='red', alpha=0.75, range = arange)
         plt.savefig(os.path.join(out_folder, "target-regressed"+str(a)+".png"))
         print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - raw_Y[:,a])
         plt.close()
- 
+
  #   for a in range(Y.shape[1]):
  #       pts = plt.figure()
  #       arange = [-3,3]
