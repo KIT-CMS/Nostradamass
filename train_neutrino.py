@@ -10,12 +10,14 @@ import sys, os
 import math
 import numpy as np
 from fourvector import *
-np.random.seed(1234)
+seed = 1234
+np.random.seed(seed)
 import pickle
 from os import environ
 environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
 environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
+from matplotlib.colors import LogNorm
 
 def norm_phi(phi):
     if phi < -np.pi:
@@ -34,52 +36,62 @@ def custom_loss(y_true, y_pred):
     mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
     return mean_squared_error
 
-def mass_loss(y_true, y_pred):
-    #mean_squared_error = K.mean(K.pow((y_pred[:,0] - y_true[:,0]), 2)) + K.mean(K.pow((y_pred[:,1] - y_true[:,1]), 2))
-    #return mean_squared_error
-
+def mass_loss_start(y_true, y_pred):
     m_squared = K.square(y_true[:,10])
     e_vis = y_true[:,2] + y_true[:,6]
-
-    #mass_fraction = y_true[:,0]
+    # eta true
     mass_fraction = y_pred[:,0]
+    eta = y_true[:,1]
     F = K.ones_like(mass_fraction) - mass_fraction
     e_neutrino = e_vis * mass_fraction * K.pow(F, -1)
 
-    ##ones = np.ones([scaled_Y.shape[0]])
-    ##F = np.subtract( ones, scaled_Y[:,0])
-    ##energy = np.multiply(scaled_Y[:,0], L[:,0])
-    ##energy /= F
-    #eta = y_true[:,1]
-    eta = y_pred[:,1]
-    #eta = K.clip(eta, -10, 10)
     sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
     pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
+    e_squared = K.square(e_vis + e_neutrino)
+    p_squared = (K.square(y_true[:,3] + y_true[:,7] + y_true[:,11]) +
+                K.square(y_true[:,4] + y_true[:,8] + y_true[:,12]) +
+                K.square(y_true[:,5] + y_true[:,9] + pz))
 
-    #pz = K.clip(pz, -3000, 3000)
-    ##pz = np.sinh(scaled_Y[:,1]) * np.sqrt( np.square(M[:,1]) + np.square(M[:,2]))
+    m_loss_fraction = K.abs(e_squared - p_squared - m_squared)/m_squared
 
+    # fraction true
+    mass_fraction = y_true[:,0]
+    eta = y_pred[:,1]
+    F = K.ones_like(mass_fraction) - mass_fraction
+    e_neutrino = e_vis * mass_fraction * K.pow(F, -1)
+
+    sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
+    pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
+    e_squared = K.square(e_vis + e_neutrino)
+    p_squared = (K.square(y_true[:,3] + y_true[:,7] + y_true[:,11]) +
+                K.square(y_true[:,4] + y_true[:,8] + y_true[:,12]) +
+                K.square(y_true[:,5] + y_true[:,9] + pz))
+    m_loss_eta = K.abs(e_squared - p_squared - m_squared)/m_squared
+
+
+    return K.mean(m_loss_fraction) + K.mean(m_loss_eta)
+
+
+def mass_loss_final(y_true, y_pred):
+    m_squared = K.square(y_true[:,10])
+    e_vis = y_true[:,2] + y_true[:,6]
+
+    # nix true
+    mass_fraction = y_pred[:,0]
+    eta = y_pred[:,1]
+    F = K.ones_like(mass_fraction) - mass_fraction
+    e_neutrino = e_vis * mass_fraction * K.pow(F, -1)
+
+    sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
+    pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
     e_squared = K.square(e_vis + e_neutrino)
     p_squared = (K.square(y_true[:,3] + y_true[:,7] + y_true[:,11]) +
                 K.square(y_true[:,4] + y_true[:,8] + y_true[:,12]) +
                 K.square(y_true[:,5] + y_true[:,9] + pz))
 
     m_loss = K.abs(e_squared - p_squared - m_squared)/m_squared
-    return K.mean(m_loss)
 
-                            #0 neutrino_sum.e/boson.e
-                            #1 neutrino_sum.eta
-                            #2 lepton_1.e,
-                            #3 lepton_1.px,
-                            #4 lepton_1.py,
-                            #5 lepton_1.pz,
-                            #6 lepton_2.e,
-                            #7 lepton_2.px,
-                            #8 lepton_2.py,
-                            #9 lepton_2.pz,
-                            #10 mass,
-                            #11 met.px,
-                            #12 met.py
+    return K.mean(m_loss)
 
 def mass_diff(y_true, y_pred):
     #raise Exception(y_pred)
@@ -277,52 +289,71 @@ def get_scaled(raw_X, raw_Y, scaler_filename = "scaler.pkl",output_folder=''):
     scaler_output.close()
     return X, Y
 
+def load_model(model_folder):
+    from keras.models import load_model
+
+    model = load_model(os.path.join(model_folder, 'toy_mass.h5'),  custom_objects={'mass_loss_start': mass_loss_start, 'custom_loss':custom_loss, 'mass_loss_final':mass_loss_final })
+    return model
+
 def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
     from keras.backend.tensorflow_backend import set_session
     import tensorflow as tf
+    from keras.initializers import RandomNormal
     #from keras.layers.normalization import BatchNormalization
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 1.0
     sess = tf.Session(config=config)
     set_session(sess)
-    
+    kernel_initializer = RandomNormal(mean=0.0, stddev=0.05, seed=seed)
+    bias_initializer = RandomNormal(mean=0.0, stddev=.25, seed=seed)
     
     if previous_model == None:    
         # model def # energy: 10x40, tanh, mean_squared_error
         model = Sequential()
-        model.add(Dense(1000, activation='relu', input_shape=(X.shape[1],)))
-        model.add(Dense(900, activation='relu'))
-        model.add(Dense(800, activation='relu'))
-        model.add(Dense(700, activation='relu'))
-        model.add(Dense(600, activation='relu'))
-        model.add(Dense(500, activation='relu'))
-        model.add(Dense(400, activation='relu'))
-        model.add(Dense(300, activation='relu'))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+#        model.add(Dense(900, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dense(800, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dense(700, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dense(600, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(400, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         #for a in range(10):
         #    model.add(Dense(1000, activation='relu'))
             #model.add(BatchNormalization())
-        for a in range(20):
-            model.add(Dense(200, activation='relu'))
+        for a in range(10):
+            model.add(Dense(150, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        for a in range(10):
+            model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(200, activation='linear'))
         #for a in range(2):
         #for a in range(12):
         #    model.add(Dense(130, activation='relu'))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=mass_loss, optimizer='adam', metrics = [custom_loss])
+        model.compile(loss=mass_loss_start, optimizer='adam', metrics = [custom_loss, mass_loss_final])
         #model.compile(loss=custom_loss, optimizer='nadam', metrics = [mass_loss])
     else:
-        from eval_masspoint import load_model
         model = load_model(previous_model)
 
     model.summary()
-    from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+#    from keras.callbacks import EarlyStopping
+#    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+    # preliminatry fit to distribute eta
     model.fit(X, Y, # Training data
-                batch_size=50000, # Batch size
-                epochs=200, # Number of training epochs
+                batch_size=75000, # Batch size
+                epochs=500, # Number of training epochs
                 validation_split=0.1)
+   #             callbacks = [early_stopping])
+
+    # final fit
+#    model.compile(loss=mass_loss_final, optimizer='adam', metrics = [custom_loss, mass_loss_start])
+#    model.summary()
+#    model.fit(X, Y, # Training data
+#                batch_size=75000, # Batch size
+#                epochs=10, # Number of training epochs
+#                validation_split=0.1)
    #             callbacks = [early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
@@ -358,6 +389,22 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
         plt.savefig(os.path.join(out_folder, "target-regressed"+str(a)+".png"))
         print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - raw_Y[:,a])
         plt.close()
+
+    for a in [0,1]:
+        if a == 0:
+            xedges = [x/100.0 for x in range(0,100,1)]
+        if a == 1:
+            xedges = [x/100.0 for x in range(-500,500,50)]
+
+        yedges = xedges
+        H, xedges, yedges = np.histogram2d(raw_Y[:,a], scaled_Y[:,a], bins=(xedges, yedges))
+        H = H.T
+        fig = plt.figure(figsize=(7, 7))
+#        ax = fig.add_subplot(131, title='imshow: square bins')
+        plt.imshow(H, interpolation='nearest', origin='low', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], norm=LogNorm())
+
+        plt.colorbar()
+        plt.savefig(os.path.join(out_folder, "nn_target_over_regressed"+str(a)+".png"))
 
  #   for a in range(Y.shape[1]):
  #       pts = plt.figure()
@@ -473,6 +520,42 @@ def plot(scaled_Y, regressed_Y, raw_Y, X, Y, B, M, L, out_folder=''):
         n, bins, patches = plt.hist(diff_fourvectors[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
         plt.savefig(os.path.join(out_folder, "diffvector-cartesian-target-regressed"+str(a)+".png"))
         print "cartesian diffvector mean ", a, np.mean(diff_fourvectors[:,a]), " stddev " , np.std(diff_fourvectors[:,a])
+
+    #2D distributions
+    for a in range(regressed_fourvectors[0].shape[0]):
+        xedges = range(-1000,1000,50)
+        if a == 0:
+            xedges = range(0,2000,50)
+
+        yedges = xedges 
+        H, xedges, yedges = np.histogram2d(regressed_fourvectors[:,a], target_fourvectors[:,a], bins=(xedges, yedges))
+        H = H.T
+        fig = plt.figure(figsize=(7, 7))
+#        ax = fig.add_subplot(131, title='imshow: square bins')
+        plt.imshow(H, interpolation='nearest', origin='low', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], norm=LogNorm())
+
+        plt.colorbar()
+        plt.savefig(os.path.join(out_folder, "cartesian_regressed_over_target"+str(a)+".png"))
+
+    for a in range(regressed_physfourvectors[0].shape[0]):
+        if a == 0:
+            xedges = range(0,1000,50)
+        if a == 1:
+            xedges = range(-8,8,1)
+        if a == 2:
+            xedges = [x/10.0 for x in range(-40,40,1)]
+        if a == 3:
+            xedges = range(0,500,10)
+
+        yedges = xedges
+        H, xedges, yedges = np.histogram2d(regressed_physfourvectors[:,a], target_physfourvectors[:,a], bins=(xedges, yedges))
+        H = H.T
+        fig = plt.figure(figsize=(7, 7))
+#        ax = fig.add_subplot(131, title='imshow: square bins')
+        plt.imshow(H, interpolation='nearest', origin='low', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], norm=LogNorm())
+
+        plt.colorbar()
+        plt.savefig(os.path.join(out_folder, "phys_regressed_over_target"+str(a)+".png"))
     
 if __name__ == '__main__':
     in_filename = sys.argv[1]
