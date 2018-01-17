@@ -115,7 +115,11 @@ def mass_loss_final(y_true, y_pred):
                 K.square(y_true[:,5] + y_true[:,9] + pz))
 
     m_loss = K.abs(e_squared - p_squared - m_squared)/m_squared
+#    loss_squared = K.abs(e_squared - p_squared - m_squared)/m_squared
 
+ #   full_loss = 2 * loss_squared + K.abs(loss_squared)
+
+ #   return K.mean(full_loss)
     return K.mean(m_loss)
 
 def mass_diff(y_true, y_pred):
@@ -339,11 +343,12 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
         # model def # energy: 10x40, tanh, mean_squared_error
         model = Sequential()
         model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
-        #model.add(GaussianNoise(stddev=5))
+        model.add(GaussianNoise(stddev=1))
 #        model.add(Dense(900, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(800, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(700, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(600, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
@@ -370,7 +375,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     # preliminatry fit to distribute eta
     model.fit(X, Y, # Training data
                 batch_size=75000, # Batch size
-                epochs=200, # Number of training epochs
+                epochs=290, # Number of training epochs
                 validation_split=0.1)
    #             callbacks = [early_stopping])
 
