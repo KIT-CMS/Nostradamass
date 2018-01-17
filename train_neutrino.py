@@ -68,9 +68,34 @@ def mass_loss_start(y_true, y_pred):
                 K.square(y_true[:,5] + y_true[:,9] + pz))
     m_loss_eta = K.abs(e_squared - p_squared - m_squared)/m_squared
 
+    #delta_eta = K.square(y_pred[:,1] - y_true[:,1])
 
     return K.mean(m_loss_fraction) + K.mean(m_loss_eta)
 
+
+def mass_loss_custom(y_true, y_pred):
+    m_squared = K.square(y_true[:,10])
+    e_vis = y_true[:,2] + y_true[:,6]
+
+    # nix true
+    mass_fraction = y_pred[:,0]
+    eta = y_pred[:,1]
+    F = K.ones_like(mass_fraction) - mass_fraction
+    e_neutrino = e_vis * mass_fraction * K.pow(F, -1)
+
+    sinh = 0.5 * (K.exp(eta) - K.exp(-eta))
+    pz = sinh * K.sqrt( K.square(y_true[:,11]) + K.square(y_true[:,12]))
+    e_squared = K.square(e_vis + e_neutrino)
+    p_squared = (K.square(y_true[:,3] + y_true[:,7] + y_true[:,11]) +
+                K.square(y_true[:,4] + y_true[:,8] + y_true[:,12]) +
+                K.square(y_true[:,5] + y_true[:,9] + pz))
+
+    m_loss = K.abs(e_squared - p_squared - m_squared)/m_squared
+
+    dEnergy = K.square(y_pred[:,0] - y_true[:,0])
+    dEta = K.square(y_pred[:,1] - y_true[:,1])
+
+    return K.mean(m_loss) + K.mean(dEnergy) + K.mean(dEta)
 
 def mass_loss_final(y_true, y_pred):
     m_squared = K.square(y_true[:,10])
@@ -301,30 +326,32 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     from keras.backend.tensorflow_backend import set_session
     import tensorflow as tf
     from keras.initializers import RandomNormal
+    from keras.layers import GaussianNoise
     #from keras.layers.normalization import BatchNormalization
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 1.0
     sess = tf.Session(config=config)
     set_session(sess)
-    kernel_initializer = RandomNormal(mean=0.0, stddev=0.05, seed=seed)
-    bias_initializer = RandomNormal(mean=0.0, stddev=.25, seed=seed)
+    kernel_initializer = "random_uniform"#RandomNormal(mean=0.0, stddev=0.05, seed=seed)
+    bias_initializer = "Zeros" #RandomNormal(mean=0.0, stddev=.25, seed=seed)
     
     if previous_model == None:    
         # model def # energy: 10x40, tanh, mean_squared_error
         model = Sequential()
         model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        #model.add(GaussianNoise(stddev=5))
 #        model.add(Dense(900, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(800, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(700, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(600, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(400, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         #for a in range(10):
         #    model.add(Dense(1000, activation='relu'))
             #model.add(BatchNormalization())
-        for a in range(10):
-            model.add(Dense(150, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        for a in range(5):
+#            model.add(Dense(50, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         for a in range(10):
             model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(200, activation='linear'))
@@ -332,7 +359,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
         #for a in range(12):
         #    model.add(Dense(130, activation='relu'))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=mass_loss_start, optimizer='adam', metrics = [custom_loss, mass_loss_final])
+        model.compile(loss=mass_loss_custom, optimizer='adam', metrics = [custom_loss, mass_loss_final])
         #model.compile(loss=custom_loss, optimizer='nadam', metrics = [mass_loss])
     else:
         model = load_model(previous_model)
@@ -343,7 +370,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     # preliminatry fit to distribute eta
     model.fit(X, Y, # Training data
                 batch_size=75000, # Batch size
-                epochs=500, # Number of training epochs
+                epochs=200, # Number of training epochs
                 validation_split=0.1)
    #             callbacks = [early_stopping])
 
