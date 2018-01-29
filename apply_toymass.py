@@ -101,18 +101,17 @@ for process in processes:
     from train_neutrino import mass_loss_start, custom_loss, mass_loss_final, mass_loss_custom, mass_loss_abs
     model = load_model(os.path.join(modelpath, 'toy_mass.h5'),  custom_objects={'mass_loss_start': mass_loss_start, 'custom_loss':custom_loss, 'mass_loss_final':mass_loss_final, 'mass_loss_custom' : mass_loss_custom , 'mass_loss_abs' : mass_loss_abs})
 
-    regressed_Y = model.predict(X)
-    scaled_Y = regressed_Y#scalerTarget.inverse_transform(regressed_Y)
+    scaled_Y = model.predict(X)
+    energy = np.sqrt(np.square(scaled_Y[:,0]) + np.square(scaled_Y[:,1]) +np.square(scaled_Y[:,2])) + np.sqrt(np.square(scaled_Y[:,3]) + np.square(scaled_Y[:,4]) +np.square(scaled_Y[:,5]))
+    
+    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( L[i,0] + energy[i],
+                                                                                            L[i,1] + scaled_Y[i,0] + scaled_Y[i,3],
+                                                                                            L[i,2] + scaled_Y[i,1] + scaled_Y[i,4],
+                                                                                            L[i,3] + scaled_Y[i,2] + scaled_Y[i,5]) for i in range(L.shape[0])])
+    
 
 
-    energy = np.multiply(scaled_Y[:,0], L[:,0])
-    ones = np.ones([scaled_Y.shape[0]])
-    F = np.subtract( ones, scaled_Y[:,0])
-    energy /= F
 
-    pz = np.sinh(scaled_Y[:,1]) * np.sqrt( np.square(M[:,1]) + np.square(M[:,2]))
-
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum(energy[i]+L[i,0], L[i,1]+M[i,1], L[i,2]+M[i,2], L[i,3]+pz[i]) for i in range(L.shape[0])])
     diff_nn_tmp = [ FourMomentum(0,#regressed_physfourvectors[i,3] - gen[i,3], 
                     regressed_fourvectors[i,1] - gen_phys[i,1],
                     regressed_fourvectors[i,2] - gen_phys[i,2],
