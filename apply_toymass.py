@@ -6,14 +6,25 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from train_neutrino import transform_fourvector
 import sys, os
-#processes = ["ggH", "DY"]
-processes = ["ggHSM", "susy100", "susy200", "susy300", "susy400",  "susy500", "susy600", "vbfSM"]
-#genmasses = [125, 91]
+from plot_invisibles import colors
+channel = r'$\tau_{had} \tau_{had}$'
+processes = ["susy100", "susy200", "susy300", "susy400",  "susy500", "susy600", "vbfSM", "ggHSM"]
+masses = [100, 200, 300, 400, 500, 600]
+masses_sv = [105, 205, 305, 405, 505, 605]
+binning = [50, 50, 50, 50, 50, 50, 100, 100]
 modelpath = sys.argv[1]
-for process in processes:
-    #process = "DY"
+outpath = sys.argv[2]
+
+means_nn = [[],[], [], []]
+widths_nn = [[],[], [], []]
+means_sv = [[],[], [], []]
+widths_sv = [[],[], [], []]
+
+def fix_between(number, minimum, maximum):
+    return min(max(number, minimum), maximum)
+
+for index, process in enumerate(processes):
     filename = "data/" + process+".csv"
-    #genmass = 91
 
     dim = 10
     n_events = sum(1 for line in open(filename))
@@ -25,8 +36,8 @@ for process in processes:
     gen = np.zeros([n_events, 4])
     gen_phys = np.zeros([n_events, 4])
 
-    diff_svfit = np.zeros([n_events, 4])
-    diff_nn = np.zeros([n_events, 4])
+ #   diff_svfit = np.zeros([n_events, 4])
+#    diff_nn = np.zeros([n_events, 4])
 
     fake_met_phys = np.zeros([n_events, 4])
     gen_met_phys = np.zeros([n_events, 4])
@@ -47,17 +58,6 @@ for process in processes:
             gen_lepton_2 = FourMomentum(a[24], a[25], a[26], a[27], cartesian=False)
 
             fake_met_phys[line,:] = np.array([a[28], 0, a[29], 0])
-            #x = np.array([  lepton_1.e,
-            #                lepton_1.px,
-            #                lepton_1.py,
-            #                lepton_1.pz,
-            #                lepton_2.e,
-            #                lepton_2.px,
-            #                lepton_2.py,
-            #                lepton_2.pz,
-            #                met.px,
-            #                met.py
-            #                ])
             x = np.array([  gen_lepton_1.e,
                             gen_lepton_1.px,
                             gen_lepton_1.py,
@@ -81,47 +81,30 @@ for process in processes:
             gen[line,:] = np.array([gen_boson.pt, gen_boson.eta, gen_boson.phi, gen_boson.m()])
             gen_phys[line,:] = np.array([gen_boson.e, gen_boson.px, gen_boson.py, gen_boson.pz])
 
-            d_svfit = FourMomentum(0, s.px - gen_boson.px, s.py - gen_boson.py, s.pz - gen_boson.pz)
-            diff_svfit[line,:] = np.array([d_svfit.pt, d_svfit.eta, d_svfit.phi, s.m() - gen_boson.m()])
+           # d_svfit = FourMomentum(0, s.px - gen_boson.px, s.py - gen_boson.py, s.pz - gen_boson.pz)
+           # diff_svfit[line,:] = np.array([d_svfit.pt, d_svfit.eta, d_svfit.phi, s.m() - gen_boson.m()])
 
             line +=1
 
 
-    #from sklearn.preprocessing import PolynomialFeatures
-    #poly = PolynomialFeatures(2)
-    #X=poly.fit_transform(X)
-
-    import pickle
-    #pkl_file = open(os.path.join(modelpath, 'scaler.pkl'), 'rb')
-    #scaler = pickle.load(pkl_file)
-    #scalerTarget = pickle.load(pkl_file)
-    #X = scaler.transform(X)
-
     from keras.models import load_model
-    from train_neutrino import mass_loss_start, custom_loss, mass_loss_final, mass_loss_custom, mass_loss_abs
-    model = load_model(os.path.join(modelpath, 'toy_mass.h5'),  custom_objects={'mass_loss_start': mass_loss_start, 'custom_loss':custom_loss, 'mass_loss_final':mass_loss_final, 'mass_loss_custom' : mass_loss_custom , 'mass_loss_abs' : mass_loss_abs})
+    from plot_invisibles import full_fourvector
+
+    model = load_model(os.path.join(modelpath) )
 
     scaled_Y = model.predict(X)
-    energy = np.sqrt(np.square(scaled_Y[:,0]) + np.square(scaled_Y[:,1]) +np.square(scaled_Y[:,2])) + np.sqrt(np.square(scaled_Y[:,3]) + np.square(scaled_Y[:,4]) +np.square(scaled_Y[:,5]))
-    
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( L[i,0] + energy[i],
-                                                                                            L[i,1] + scaled_Y[i,0] + scaled_Y[i,3],
-                                                                                            L[i,2] + scaled_Y[i,1] + scaled_Y[i,4],
-                                                                                            L[i,3] + scaled_Y[i,2] + scaled_Y[i,5]) for i in range(L.shape[0])])
-    
+    regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
+    diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
+                             regressed_physfourvectors[i,1] - gen[i, 1],
+                             regressed_physfourvectors[i,2] - gen[i, 2],
+                             regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<200  ])
 
+    diff_svfit = np.array([  [svfit[i,0] - gen[i, 0],
+                              svfit[i,1] - gen[i, 1],
+                              svfit[i,2] - gen[i, 2],
+                              svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
-
-    diff_nn_tmp = [ FourMomentum(0,#regressed_physfourvectors[i,3] - gen[i,3], 
-                    regressed_fourvectors[i,1] - gen_phys[i,1],
-                    regressed_fourvectors[i,2] - gen_phys[i,2],
-                    regressed_fourvectors[i,3] - gen_phys[i,3]) for i in range(regressed_fourvectors.shape[0])]
-    diff_nn = np.array([[diff_nn_tmp[i].pt, diff_nn_tmp[i].eta, diff_nn_tmp[i].phi, regressed_physfourvectors[i,3] - gen[i,3]] for i in range(gen.shape[0])])
-
-    
-    #target_physfourvectors, target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in B])
-
-    #vis_physfourvectors, vis_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in L])
+    """
     for a in [0]:
         pts = plt.figure()
         irange = None
@@ -134,33 +117,71 @@ for process in processes:
         n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, facecolor='gray', alpha=0.5, range=irange)
         #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
         plt.savefig("plots_apply/"+process+"-fakemet"+str(a)+".png")
-    
+    """
     
 
-    print process, " toy mean: ", np.mean(regressed_physfourvectors[:,3]), 'toy median', np.median(regressed_physfourvectors[:,3]), ", toy resolution: ", np.std(regressed_physfourvectors[:,3])
-    print process, " svfit mean: ", np.mean(svfit[:,3]), "svfit median", np.median(svfit[:,3]), ", svfit resolution: ", np.mean(svfit[:,3])
-    for a in range(4):
-        pts = plt.figure()
-        irange = None
-        if a == 3:
-            irange = [0, 1000]
-        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75, range=irange)
-        n, bins, patches = plt.hist(svfit[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
-        n, bins, patches = plt.hist(gen[:,a], 150, normed=1, facecolor='green', alpha=0.75, range=irange)
-        #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
-        plt.savefig("plots_apply/"+process+"-regressed"+str(a)+".png")
+#    print process, " toy mean: ", np.mean(regressed_physfourvectors[:,3]), 'toy median', np.median(regressed_physfourvectors[:,3]), ", toy resolution: ", np.std(regressed_physfourvectors[:,3])
+#    print process, " svfit mean: ", np.mean(svfit[:,3]), "svfit median", np.median(svfit[:,3]), ", svfit resolution: ", np.mean(svfit[:,3])
 
-    for a in range(4):
-        pts = plt.figure()
-        irange = None
+
+
+
+
+    for a in range(regressed_physfourvectors.shape[1]):
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+        ranges = [[0,500],
+            [-8,8],
+            [-4,4],
+            [0,600]]
+        titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
+        n, bins, patches = plt.hist(gen[:,a], bins=binning[index], normed=1, color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
+        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
+        n, bins, patches = plt.hist(svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+#        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
+#        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+        #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
+
         if a == 0:
-            irange = [-500, 500]
+            ax.text(0.7, 0.75, r'$\sigma(p_T^{true}, p_T^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.75, 0.7, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+
+            ax.text(0.7, 0.6, r'$\sigma(p_T^{true}, p_T^{SVFit})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.75, 0.55, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+
         if a == 3:
-            irange = [-500, 500]
-        n, bins, patches = plt.hist(diff_nn[:,a], 150, normed=1, facecolor='red', alpha=0.75, range=irange)
-        n, bins, patches = plt.hist(diff_svfit[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
-        #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
-        plt.savefig("plots_apply/"+process+"-diff"+str(a)+".png")
+            ax.text(0.6, 0.6, r'$\sigma / \Delta (m^{true}, m^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.55, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:10.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.6, 0.4, r'$\sigma / \Delta (m^{true}, m^{SVFit})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.35, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:10.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+
+        if index < 6:
+            means_nn[a].append(np.mean(diff_nn[:,a]))
+            widths_nn[a].append(np.std(diff_nn[:,a]))
+            means_sv[a].append(np.mean(diff_svfit[:,a]))
+            widths_sv[a].append(np.std(diff_svfit[:,a]))
+
+        ax.set_xlabel(titles[a])
+        ax.set_ylabel("arb. units")
+        ax.set_title("Gen vs. reconstruction (" + channel + ", " + process + ")")
+
+        plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
+        plt.tight_layout()
+        plt.close()
+
+
+#    for a in range(4):
+#        pts = plt.figure()
+#        irange = None
+#        if a == 0:
+#            irange = [-500, 500]
+#        if a == 3:
+#            irange = [-500, 500]
+#        n, bins, patches = plt.hist(diff_nn[:,a], 150, normed=1, facecolor='red', alpha=0.75, range=irange)
+#        n, bins, patches = plt.hist(diff_svfit[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
+#        #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
+#        plt.savefig("plots_apply/"+process+"-diff"+str(a)+".png")
 
 
 #    for a in range(4):
@@ -174,3 +195,23 @@ for process in processes:
 #        n, bins, patches = plt.hist(regressed_fourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75)
         #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
 #        plt.savefig("plots_apply/"+process+"-cartesian"+str(a)+".png")
+
+for a in range(4):
+    fig = plt.figure(figsize=(5,5))
+    ax = fig.add_subplot(111)
+    ranges = [[0,500],
+        [-8,8],
+        [-4,4],
+        [0,600]]
+    titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
+    ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Regressed")
+    ax.errorbar(masses_sv, means_sv[a], yerr=widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
+
+    ax.set_xlabel(r'$m$ (GeV)')
+    ax.set_ylabel(titles[a])
+    ax.set_title("Resolution (" + channel + ")")
+
+    plt.legend(loc='best')
+    plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".png"))
+    plt.tight_layout()
+    plt.close()

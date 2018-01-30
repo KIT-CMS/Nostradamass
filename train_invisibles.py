@@ -89,7 +89,6 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
                 lepton_2_neutrinos = posTauNNeutrinos
                 decay_channel = negTauDecayType + posTauDecayType
     
-            #fake = fake_met.next()
             neutrino_sum = posTauInvis + negTauInvis 
             met= neutrino_sum
     
@@ -160,10 +159,10 @@ def load_from_pickle(in_filename):
     return X, Y, B, M, L, phys_M
 
 
-def load_model(model_folder):
+def load_model(model_path):
     from keras.models import load_model
 
-    model = load_model(os.path.join(model_folder, 'toy_mass.h5'))
+    model = load_model(model_path)
     return model
 
 def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
@@ -181,14 +180,14 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
 #        model.add(GaussianNoise(stddev=2))
   #      model.add(Dropout(0.01))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
  #       model.add(Dropout(0.01))
-#        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(750, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dropout(0.01))
-   #     model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
         model.compile(loss='mean_squared_error', optimizer='adam', metrics = None)
     else:
@@ -201,7 +200,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     early_stopping = EarlyStopping(patience = 20)
     model.fit(X, Y, # Training data
                 batch_size=100000, # Batch size
-                epochs=500, # Number of training epochs
+                epochs=1000, # Number of training epochs
                 validation_split=0.1,
                 callbacks = [model_checkpoint])#early_stopping, 
     model.save(os.path.join(out_folder, model_filename))
