@@ -58,16 +58,16 @@ for index, process in enumerate(processes):
             gen_lepton_2 = FourMomentum(a[24], a[25], a[26], a[27], cartesian=False)
 
             fake_met_phys[line,:] = np.array([a[28], 0, a[29], 0])
-            x = np.array([  gen_lepton_1.e,
-                            gen_lepton_1.px,
-                            gen_lepton_1.py,
-                            gen_lepton_1.pz,
-                            gen_lepton_2.e,
-                            gen_lepton_2.px,
-                            gen_lepton_2.py,
-                            gen_lepton_2.pz,
-                            gen_met.px,
-                            gen_met.py
+            x = np.array([  lepton_1.e,
+                            lepton_1.px,
+                            lepton_1.py,
+                            lepton_1.pz,
+                            lepton_2.e,
+                            lepton_2.px,
+                            lepton_2.py,
+                            lepton_2.pz,
+                            met.px,
+                            met.py
                             ])
             X[line,:] = x
             s = FourMomentum(a[0], a[1], a[2], a[3], cartesian=False)

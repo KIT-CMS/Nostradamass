@@ -19,6 +19,7 @@ environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
 from matplotlib.colors import LogNorm
 
+selected_channel = 'tt'
 
 def transform_fourvector(vin):
     cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
@@ -45,7 +46,7 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     n_events = sum(1 for line in open(in_filename))
     
     dim = 10
-    targets = 6
+    targets = 12
     X = np.zeros([n_events, dim])
     Y = np.zeros([n_events, targets])
     B = np.zeros([n_events, 4])
@@ -65,31 +66,37 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
             except:
                 continue
             posTauVis = create_FourMomentum(row[1])
-            posTauInvis = create_FourMomentum(row[2]+ row[3])
+            posTauInvis1 = create_FourMomentum(row[2])
+            posTauInvis2 = create_FourMomentum(row[3])
             posTauNNeutrinos = count_neutrinos(row[3])
             posTauDecayType = get_decay(row[3])
             negTauVis = create_FourMomentum(row[4])
-            negTauInvis = create_FourMomentum(row[5]+ row[6])
+            negTauInvis1 = create_FourMomentum(row[5])
+            negTauInvis2 = create_FourMomentum(row[6])
             negTauNNeutrinos = count_neutrinos(row[6])
             negTauDecayType = get_decay(row[6])
             if posTauNNeutrinos >= negTauNNeutrinos:
                 lepton_1 = posTauVis 
                 lepton_2 = negTauVis
-                neutrinos_1 = posTauInvis
-                neutrinos_2 = negTauInvis
+                neutrinos_1_1 = posTauInvis1
+                neutrinos_1_2 = posTauInvis2
+                neutrinos_2_1 = negTauInvis1
+                neutrinos_2_2 = negTauInvis2
                 lepton_1_neutrinos = posTauNNeutrinos
                 lepton_2_neutrinos = negTauNNeutrinos
                 decay_channel = posTauDecayType + negTauDecayType
             else:
                 lepton_1 = negTauVis 
                 lepton_2 = posTauVis
-                neutrinos_1 = negTauInvis
-                neutrinos_2 = posTauInvis
+                neutrinos_1_1 = negTauInvis1
+                neutrinos_1_2 = negTauInvis2
+                neutrinos_2_1 = posTauInvis1
+                neutrinos_2_2 = posTauInvis2
                 lepton_1_neutrinos = negTauNNeutrinos
                 lepton_2_neutrinos = posTauNNeutrinos
                 decay_channel = negTauDecayType + posTauDecayType
     
-            neutrino_sum = posTauInvis + negTauInvis 
+            neutrino_sum = posTauInvis1 + posTauInvis2 + negTauInvis1 + negTauInvis2
             met= neutrino_sum
     
             boson = lepton_1 + lepton_2 + neutrino_sum
@@ -105,20 +112,24 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
                             met.px,
                             met.py
                             ])
-            y = np.array([  neutrinos_1.px,
-                            neutrinos_1.py,
-                            neutrinos_1.pz,
-                            neutrinos_2.px,
-                            neutrinos_2.py,
-                            neutrinos_2.pz ]
+            y = np.array([  neutrinos_1_1.px,
+                            neutrinos_1_1.py,
+                            neutrinos_1_1.pz,
+            			    neutrinos_1_2.px,
+                            neutrinos_1_2.py,
+                            neutrinos_1_2.pz,
+                            neutrinos_2_1.px,
+                            neutrinos_2_1.py,
+                            neutrinos_2_1.pz,
+                            neutrinos_2_2.px,
+                            neutrinos_2_2.py,
+                            neutrinos_2_2.pz ]
                             )
 
             X[line,:] = x
             Y[line,:] = y
             b = np.array([boson.e, boson.px, boson.py, boson.pz])
             l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
-            #m = np.array([neutrino_sum.e, neutrino_sum.px, neutrino_sum.py, neutrino_sum.pz])
-            #M[line,:] = m
             phys_m = np.array([neutrino_sum.pt, neutrino_sum.eta, neutrino_sum.phi, neutrino_sum.m()])
             phys_M[line,:] = phys_m
 
@@ -126,16 +137,24 @@ def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
             B[line,:] = b
             L[line,:] = l
             DM[line] = decay_channel
-            #genmass[line] = boson.m()
     
     # filter for selected Decay modes
     #selected_events = [a for a in range(len(DM)) if DM[a] == 'tt' and genmass[a][0] < 300]
-    selected_events = [a for a in range(len(DM)) if DM[a] == 'tt']
+    selected_events = [a for a in range(len(DM)) if DM[a] == selected_channel]
     X = np.array([X[x] for x in selected_events])
     Y = np.array([Y[x] for x in selected_events])
     B = np.array([B[x] for x in selected_events])
     #M = np.array([M[x] for x in selected_events])
     L = np.array([L[x] for x in selected_events])
+        
+    if selected_channel == 'tt':
+        for a in [3,3,3,6,6,6]:
+            Y = np.delete(Y, a, 1)
+
+    if selected_channel == 'mt' or selected_channel == 'et':
+        for a in [9,9,9]:
+            Y = np.delete(Y, a, 1)
+
     if save_cache:
         cache_output = open(os.path.join(out_folder, 'cache.pkl'), 'wb')
         pickle.dump(X, cache_output)

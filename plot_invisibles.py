@@ -18,7 +18,7 @@ environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
 environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
 from matplotlib.colors import LogNorm
-
+selected_channel = 'mt'
 
 def transform_fourvector(vin):
     cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
@@ -30,12 +30,14 @@ from train_invisibles import load_from_log, predict, transform_fourvector, load_
 
 def full_fourvector(scaled_Y, L):
     # transformation
-    energy = np.sqrt(np.square(scaled_Y[:,0]) + np.square(scaled_Y[:,1]) +np.square(scaled_Y[:,2])) + np.sqrt(np.square(scaled_Y[:,3]) + np.square(scaled_Y[:,4]) +np.square(scaled_Y[:,5]))
+    vlen = scaled_Y.shape[1]
+    print "shape: ", scaled_Y.shape, ", range: ", range(0, vlen, 3)
+    energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(0, vlen, 3)])
     
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( L[i,0] + energy[i],
-                                                                                            L[i,1] + scaled_Y[i,0] + scaled_Y[i,3],
-                                                                                            L[i,2] + scaled_Y[i,1] + scaled_Y[i,4],
-                                                                                            L[i,3] + scaled_Y[i,2] + scaled_Y[i,5]) for i in range(L.shape[0])])
+    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
+                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
+                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(1, vlen, 3)])),
+                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])])
     return regressed_physfourvectors, regressed_fourvectors
 
 colors = {
@@ -47,26 +49,47 @@ colors = {
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
    
+    channel = [ r'$\tau_{had} \tau_{had}$',
+                r'$\mu \tau_{had}$', 
+                r'$e \tau_{had}$', 
+                r'$e \mu$', 
+                r'$ee$', 
+                r'$\mu\mu$']
 
-    channel = r'$\tau_{had} \tau_{had}$'
-    titles = [ r'$p_x^{\nu,1}$',
-               r'$p_y^{\nu,1}$',
-               r'$p_z^{\nu,1}$',
-               r'$p_x^{\nu,2}$',
-               r'$p_y^{\nu,2}$',
-               r'$p_z^{\nu,2}$']
-    # transform to plottable systems
-    regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
-    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
-    target_physfourvectors, target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in B])
-    vis_physfourvectors, vis_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in L])
+    titles = [ r'$p_x^{\nu^{\tau}_1}$',
+               r'$p_y^{\nu^{\tau}_1}$',
+               r'$p_z^{\nu^{\tau}_1}$',
+               r'$p_x^{\nu^{\tau}_2}$',
+               r'$p_x^{\nu^{\tau}_2}$',
+               r'$p_y^{\nu^{\tau}_2}$',
+               r'$p_z^{\nu^{\tau}_2}$',
+               r'$p_x^{\nu^{\mu)}}$',
+               r'$p_y^{\nu^{\mu)}}$',
+               r'$p_z^{\nu^{\mu)}}$',
+               r'$p_x^{\nu^{\tau)}}$',
+               r'$p_y^{\nu^{\tau)}}$',
+               r'$p_z^{\nu^{\tau)}}$',
+               r'$p_x^{\nu^{e)}}$',
+               r'$p_y^{\nu^{e)}}$',
+               r'$p_z^{\nu^{e)}}$',
+            ]
+    from operator import itemgetter 
+    if selected_channel == 'tt':
+        titles = itemgetter(*[0,1,2,3,4,5])(titles)
+        channel = channel[0]
+    elif selected_channel == 'mt':
+        titles = itemgetter(*[0,1,2,6,7,8,3,4,5])(titles)
+        channel = channel[1]
+    elif selected_channel == 'et':
+        titles = itemgetter(*[13,14,15,10,11,12])(titles)
+        channel = channel[2]
 
     # target/regressed neutrino vectors
     for a in range(scaled_Y[0].shape[0]):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
         arange = [-300,300]
-        if a == 2 or a == 5:
+        if a%3 == 2: # Z-Componentes
             arange = [-1000,1000]
 
 
@@ -85,6 +108,11 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         plt.savefig(os.path.join(out_folder, "target-vs-regressed"+str(a)+".png"))
         plt.close()
 
+    # transform to plottable systems
+    regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
+    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
+    target_physfourvectors, target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in B])
+    vis_physfourvectors, vis_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in L])
     
     diff_fourvectors = regressed_fourvectors-target_fourvectors
     diff_physfourvectors = regressed_physfourvectors-target_physfourvectors
