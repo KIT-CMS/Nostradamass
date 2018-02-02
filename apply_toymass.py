@@ -1,11 +1,13 @@
 import csv
+import sys, os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
 import numpy as np
 from fourvector import *
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from train_neutrino import transform_fourvector
-import sys, os
 from plot_invisibles import colors
 channel = r'$\tau_{had} \tau_{had}$'
 processes = ["susy100", "susy200", "susy300", "susy400",  "susy500", "susy600", "vbfSM", "ggHSM"]
@@ -14,6 +16,8 @@ masses_sv = [105, 205, 305, 405, 505, 605]
 binning = [50, 50, 50, 50, 50, 50, 100, 100]
 modelpath = sys.argv[1]
 outpath = sys.argv[2]
+if not os.path.exists(outpath):
+    os.makedirs(outpath)
 
 means_nn = [[],[], [], []]
 widths_nn = [[],[], [], []]
@@ -87,10 +91,13 @@ for index, process in enumerate(processes):
             line +=1
 
 
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ['CUDA_VISIBLE_DEVICES'] = "3"
     from keras.models import load_model
     from plot_invisibles import full_fourvector
+    from train_invisibles import custom_loss
 
-    model = load_model(os.path.join(modelpath) )
+    model = load_model(os.path.join(modelpath), custom_objects={'custom_loss':custom_loss } )
 
     scaled_Y = model.predict(X)
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)

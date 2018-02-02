@@ -17,17 +17,16 @@ def scale_input(X, scaler):
     return X
     
 
-def load_model(model_folder):
+def load_model(model_p):
     from keras.models import load_model
-    from train_neutrino import mass_loss_start, custom_loss, mass_loss_final, mass_loss_custom, mass_loss_abs
-    model = load_model(os.path.join(model_folder, 'toy_mass.h5'),  custom_objects={'mass_loss_start': mass_loss_start, 'custom_loss':custom_loss, 'mass_loss_final':mass_loss_final, 'mass_loss_custom' : mass_loss_custom , 'mass_loss_abs' : mass_loss_abs})
+#    from train_neutrino import mass_loss_start, custom_loss, mass_loss_final, mass_loss_custom, mass_loss_abs
+    model = load_model(model_p )
     return model
 
 from train_invisibles import load_from_log, get_inverse, predict, transform_fourvector
 
 
-def plot(scaled_Y, X, Y, B, M, L, mass):
-    output_folder = "plots/m"+str(mass)
+def plot(scaled_Y, X, Y, B, M, L, mass, output_folder):
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -112,14 +111,16 @@ def plot(scaled_Y, X, Y, B, M, L, mass):
         plt.savefig(output_folder+"/diffvector-target-regressed"+str(a)+".png")
 
 if __name__ == '__main__':
-    mass = sys.argv[1]
-    folder = sys.argv[2]
-    model_folder = sys.argv[3]
-    X, Y, B, M, L, phys_M = load_from_log(folder + "/m"+mass+".log", "pickle.pkl", save_cache=False)
+    #mass = sys.argv[1]
+    in_file = sys.argv[1]
+    model_folder = sys.argv[2]
+    output_folder = sys.argv[3]
+    mass = int(sys.argv[4])
+    X, Y, B, M, L, phys_M = load_from_log(in_file, "pickle.pkl", save_cache=False)
     #scaler, scalerTarget = get_scaler(model_folder)
     model = load_model(model_folder)
     regressed_Y = predict(model, X)
-    plot(regressed_Y, X, Y, B, M, L, mass)
+    plot(regressed_Y, X, Y, B, M, L, mass, output_folder)
     # raw_X unscaled
     # raw_Y unscaled
     # X input for DNN

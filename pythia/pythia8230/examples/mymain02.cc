@@ -40,6 +40,7 @@ void write_particles(std::vector<int> &in, Event &e)
 
 int main( int argc, char * argv[] )
 {
+	assert(argc == 4);
     Pythia pythia;
 
     stringstream in_seed(argv[3]);

@@ -30,9 +30,19 @@ from train_invisibles import load_from_log, predict, transform_fourvector, load_
 
 def full_fourvector(scaled_Y, L):
     # transformation
-    vlen = scaled_Y.shape[1]
-    print "shape: ", scaled_Y.shape, ", range: ", range(0, vlen, 3)
+    vlen = scaled_Y.shape[1] - 4
     energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(0, vlen, 3)])
+    
+    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
+                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
+                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(1, vlen, 3)])),
+                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])])
+    return regressed_physfourvectors, regressed_fourvectors
+
+def mod_fourvector(scaled_Y, Y, L):
+    # transformation
+    vlen = scaled_Y.shape[1]
+    energy = np.sqrt( np.square(Y[:,0]) + np.square(Y[:,1]) + np.square(Y[:,2])) + np.sqrt( np.square(Y[:,3]) + np.square(Y[:,4]) + np.square(Y[:,5]))
     
     regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
                                                                                             (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
@@ -48,6 +58,9 @@ colors = {
 
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
+    from train_invisibles import smear_met_relative, add_pu_target
+    X, Y = add_pu_target(X, Y, 0)
+    X = smear_met_relative(X, magnitude = 0.)
    
     channel = [ r'$\tau_{had} \tau_{had}$',
                 r'$\mu \tau_{had}$', 
@@ -149,16 +162,17 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         plt.close()
 
     # compare gen met and regressed met
-#    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
-#    if True:
-#        irange = None
-#        pts = plt.figure()
-#        n, bins, patches = plt.hist(regressed_met_pt[:], 150, normed=1, linecolor=color["color_nn"], histtype='step', label='target')
-#        n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, linecolor=color["color_true"], histtype='step', label='target')
-#        plt.savefig(os.path.join(out_folder, "met_genmet.png"))
+    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
+    if True:
+        irange = None
+        pts = plt.figure()
+        n, bins, patches = plt.hist(regressed_met_pt[:], 150, normed=1, color=colors["color_nn"], histtype='step', label='target')
+        n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, color=colors["color_true"], histtype='step', label='target')
+        plt.savefig(os.path.join(out_folder, "met_genmet.png"))
 
 
 # plotting script
+from train_invisibles import smear_met
 if __name__ == '__main__':
     in_filename = sys.argv[1]
     model_path = sys.argv[2]
@@ -166,10 +180,11 @@ if __name__ == '__main__':
 
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
-    if in_filename[-4:] == ".log":
+    if (in_filename[-4:] == ".log") or (in_filename[-5:] == ".data"):
         X, Y, B, M, L, phys_M = load_from_log(in_filename, "pickle.pkl", out_folder=out_folder, save_cache=True)
     elif in_filename[-4:] == ".pkl":
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
+    X = smear_met(X, magnitude = 0.20)
     regressed_Y = predict(model, X)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)
