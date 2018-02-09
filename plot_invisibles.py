@@ -18,7 +18,7 @@ environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
 environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
 from matplotlib.colors import LogNorm
-selected_channel = 'mt'
+selected_channel = 'tt'
 
 def transform_fourvector(vin):
     cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
@@ -30,7 +30,7 @@ from train_invisibles import load_from_log, predict, transform_fourvector, load_
 
 def full_fourvector(scaled_Y, L):
     # transformation
-    vlen = scaled_Y.shape[1] - 4
+    vlen = 6#scaled_Y.shape[1] - 9
     energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(0, vlen, 3)])
     
     regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
@@ -59,8 +59,10 @@ colors = {
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
     from train_invisibles import smear_met_relative, add_pu_target
-    X, Y = add_pu_target(X, Y, 0)
+    X, Y = add_pu_target(X, Y, 0, 0)
+
     X = smear_met_relative(X, magnitude = 0.)
+
    
     channel = [ r'$\tau_{had} \tau_{had}$',
                 r'$\mu \tau_{had}$', 
@@ -85,6 +87,8 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
                r'$p_x^{\nu^{e)}}$',
                r'$p_y^{\nu^{e)}}$',
                r'$p_z^{\nu^{e)}}$',
+               r'PUx',
+               r'PUy',
             ]
     from operator import itemgetter 
     if selected_channel == 'tt':
@@ -97,14 +101,25 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         titles = itemgetter(*[13,14,15,10,11,12])(titles)
         channel = channel[2]
 
+    titles = titles + ("genmass", "smearing x", "smearing y", "smearedMETx", "smearedMETy", "vispt", "boson e", "boson x", "boson y", "boson z")
+    print titles
+    # Y: 0-5 : Neutrino 1/2 x, y, z
+    # Y: 6 : gen Mass
+
+    # Y: 7/8: Smear x/y
+    # Y: 9/10: smeared met???
+    # Y: 11: pt
+    # Y: 12-15: 4-vector visible
+
     # target/regressed neutrino vectors
     for a in range(scaled_Y[0].shape[0]):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
-        arange = [-300,300]
+        arange = [-400,400]
         if a%3 == 2: # Z-Componentes
             arange = [-1000,1000]
-
+        if (a==7) or (a==8):
+            arange = [-50,50]
 
         n, bins, patches = plt.hist(Y[:,a], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
         n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
@@ -172,7 +187,7 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
 
 # plotting script
-from train_invisibles import smear_met
+from train_invisibles import add_pu_target
 if __name__ == '__main__':
     in_filename = sys.argv[1]
     model_path = sys.argv[2]
@@ -185,6 +200,6 @@ if __name__ == '__main__':
     elif in_filename[-4:] == ".pkl":
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
-    X = smear_met(X, magnitude = 0.20)
+    X, Y = add_pu_target(X, Y, 15., 0.0)
     regressed_Y = predict(model, X)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)

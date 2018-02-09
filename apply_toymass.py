@@ -202,6 +202,23 @@ for index, process in enumerate(processes):
 #        n, bins, patches = plt.hist(regressed_fourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75)
         #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
 #        plt.savefig("plots_apply/"+process+"-cartesian"+str(a)+".png")
+##    for a in [6]:
+##        fig = plt.figure(figsize=(5,5))
+##        ax = fig.add_subplot(111)
+##        arange = [-0,700]
+##    
+##        n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
+##        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
+##        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
+##        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+##        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+##        ax.set_xlabel("mass  (GeV)")
+##        ax.set_ylabel("arb. units")
+##        ax.set_title("Regression target vs. Result (" + channel + ")")
+##        plt.legend()
+##        plt.tight_layout()
+##        plt.savefig(os.path.join(outpath, process+"-target-vs-regressed"+str(a)+".png"))
+##        plt.close()
 
 for a in range(4):
     fig = plt.figure(figsize=(5,5))
