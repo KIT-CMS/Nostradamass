@@ -43,8 +43,10 @@ for index, process in enumerate(processes):
  #   diff_svfit = np.zeros([n_events, 4])
 #    diff_nn = np.zeros([n_events, 4])
 
-    fake_met_phys = np.zeros([n_events, 4])
+    fake_met_cart = np.zeros([n_events, 4])
     gen_met_phys = np.zeros([n_events, 4])
+    met_cov = np.zeros([n_events, 4])
+    met_unc = np.zeros([n_events, 2])
 
     line = 0
     with open(filename, 'rb') as csvfile:
@@ -61,7 +63,10 @@ for index, process in enumerate(processes):
             gen_lepton_1 = FourMomentum(a[20], a[21], a[22], a[23], cartesian=False)
             gen_lepton_2 = FourMomentum(a[24], a[25], a[26], a[27], cartesian=False)
 
-            fake_met_phys[line,:] = np.array([a[28], 0, a[29], 0])
+            met_cov[line,:] = np.array([a[28], a[29], a[30], a[31]])
+            met_unc[line,:] = np.array([np.sqrt(a[28]), np.sqrt(a[31])])
+
+            fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
             x = np.array([  lepton_1.e,
                             lepton_1.px,
                             lepton_1.py,
@@ -112,27 +117,15 @@ for index, process in enumerate(processes):
                               svfit[i,2] - gen[i, 2],
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
-    """
-    for a in [0]:
+    # fake met / vgl mit cov matrix
+    for a in [0,1]:
         pts = plt.figure()
         irange = None
-#        if a == 0:
- #           irange = [-500, 500]
-  #      if a == 3:
-   #         irange = [-500, 500]
-        n, bins, patches = plt.hist(fake_met_phys[:,0], 150, normed=1, facecolor='orange', alpha=0.5, range=irange)
-        n, bins, patches = plt.hist(gen_met_phys[:,0], 150, normed=1, facecolor='green', alpha=0.5, range=irange)
-        n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, facecolor='gray', alpha=0.5, range=irange)
-        #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
-        plt.savefig("plots_apply/"+process+"-fakemet"+str(a)+".png")
-    """
-    
-
-#    print process, " toy mean: ", np.mean(regressed_physfourvectors[:,3]), 'toy median', np.median(regressed_physfourvectors[:,3]), ", toy resolution: ", np.std(regressed_physfourvectors[:,3])
-#    print process, " svfit mean: ", np.mean(svfit[:,3]), "svfit median", np.median(svfit[:,3]), ", svfit resolution: ", np.mean(svfit[:,3])
-
-
-
+        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
+        n, bins, patches = plt.hist(met_unc[:,a], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="cov")
+        plt.savefig(os.path.join(outpath, process+"-fakemet"+str(a)+".png"))
+        print process, " fake met: ", np.mean(fake_met_cart[:,a]), 'toy median', np.median(fake_met_cart[:,a]), ", toy resolution: ", np.std(fake_met_cart[:,a])
+        plt.legend(loc='best')
 
 
     for a in range(regressed_physfourvectors.shape[1]):
@@ -222,29 +215,19 @@ for index, process in enumerate(processes):
 ##        plt.close()
 
 # tau mass
-    tau_1_orig_cartesian = [ FourMomentum( X[i,0] + np.sqrt(np.square(scaled_Y[i,0]) + np.square(scaled_Y[i,1]) + np.square(scaled_Y[i,2])),
-                                 X[i,1] + scaled_Y[i,0],
-                                 X[i,2] + scaled_Y[i,1],
-                                 X[i,3] + scaled_Y[i,2]) for i in range(X.shape[0])]
-
-    tau_1_orig_phys = np.array( [ [tau_1_orig_cartesian[i].pt,
-                                   tau_1_orig_cartesian[i].eta, 
-                                   tau_1_orig_cartesian[i].phi,
-                                   tau_1_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
-    tau_2_orig_cartesian = [ FourMomentum( X[i,4] + np.sqrt(np.square(scaled_Y[i,3]) + np.square(scaled_Y[i,4]) + np.square(scaled_Y[i,5])),
-                                 X[i,5] + scaled_Y[i,3],
-                                 X[i,6] + scaled_Y[i,4],
-                                 X[i,7] + scaled_Y[i,5]) for i in range(X.shape[0])]
-    tau_2_orig_phys = np.array( [ [tau_2_orig_cartesian[i].pt,
-                                   tau_2_orig_cartesian[i].eta, 
-                                   tau_2_orig_cartesian[i].phi,
-                                   tau_2_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
+    from plot_invisibles import original_tau
+    tau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, scaled_Y)
+    tau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, scaled_Y)
+#    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
+#    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, Y)
 
     for a in range(4):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
 #        arange = [-0,700]
         arange = None
+        if a == 3:
+            arange = [-2, 20]
     
         n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
         n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
@@ -259,6 +242,9 @@ for index, process in enumerate(processes):
         plt.tight_layout()
         plt.savefig(os.path.join(outpath, process+"-taumass"+str(a)+".png"))
         plt.close()
+
+
+
 
 for a in range(4):
     fig = plt.figure(figsize=(5,5))

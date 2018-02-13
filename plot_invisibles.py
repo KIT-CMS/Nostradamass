@@ -145,10 +145,21 @@ def get_mass_constrained_ys(X, Y):
         Y[line,5] = get_pz(Y[line,3], Y[line,4], X[line,4], X[line,5], X[line,6], X[line,7])
     return Y
 
+def original_tau(te_i, tx_i, ty_i, tz_i, nx_i, ny_i, nz_i, X, Y):
+    tau_orig_cartesian = [ FourMomentum( X[i,te_i] + np.sqrt(np.square(Y[i,nx_i]) + np.square(Y[i,ny_i]) + np.square(Y[i,nz_i])),
+                                 X[i,tx_i] + Y[i,nx_i],
+                                 X[i,ty_i] + Y[i,ny_i],
+                                 X[i,tz_i] + Y[i,nz_i]) for i in range(X.shape[0])]
+    tau_orig_phys = np.array( [ [tau_orig_cartesian[i].pt,
+                                 tau_orig_cartesian[i].eta, 
+                                 tau_orig_cartesian[i].phi,
+                                 tau_orig_cartesian[i].m() if tau_orig_cartesian[i].m2()>0 else 0.0] for i in range(len(tau_orig_cartesian))])
+
+    return tau_orig_phys
 
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
-    from train_invisibles import smear_met_relative, add_pu_target
+    from train_invisibles import smear_met_relative
 
     X = smear_met_relative(X, magnitude = 0.)
 
@@ -265,31 +276,22 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         plt.tight_layout()
         plt.close()
 # tau mass
-    tau_1_orig_cartesian = [ FourMomentum( X[i,0] + np.sqrt(np.square(Y[i,0]) + np.square(Y[i,1]) + np.square(Y[i,2])),
-                                 X[i,1] + Y[i,0],
-                                 X[i,2] + Y[i,1],
-                                 X[i,3] + Y[i,2]) for i in range(X.shape[0])]
+    tau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, scaled_Y)
+    tau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, scaled_Y)
+    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
+    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, Y)
 
-    tau_1_orig_phys = np.array( [ [tau_1_orig_cartesian[i].pt,
-                                   tau_1_orig_cartesian[i].eta, 
-                                   tau_1_orig_cartesian[i].phi,
-                                   tau_1_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
-    tau_2_orig_cartesian = [ FourMomentum( X[i,4] + np.sqrt(np.square(scaled_Y[i,3]) + np.square(scaled_Y[i,4]) + np.square(scaled_Y[i,5])),
-                                 X[i,5] + scaled_Y[i,3],
-                                 X[i,6] + scaled_Y[i,4],
-                                 X[i,7] + scaled_Y[i,5]) for i in range(X.shape[0])]
-    tau_2_orig_phys = np.array( [ [tau_2_orig_cartesian[i].pt,
-                                   tau_2_orig_cartesian[i].eta, 
-                                   tau_2_orig_cartesian[i].phi,
-                                   tau_2_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
     for a in range(4):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
-#        arange = [-0,700]
-        arange = [0,30]
+        arange = None
+        if a == 3:
+            arange = [-10,15]
     
         n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
-        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
+        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="green", histtype='step', range = arange, label='regressed tau2')
+        n, bins, patches = plt.hist(gentau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='target tau1')
+        n, bins, patches = plt.hist(gentau_2_orig_phys[:,a], 150, normed=1, color="orange", histtype='step', range = arange, label='target tau2')
 #        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
 #        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
 #        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
@@ -326,7 +328,7 @@ if __name__ == '__main__':
     elif in_filename[-4:] == ".pkl":
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
-    X, Y = add_pu_target(X, Y, 0., 0.0)
+    X, Y = add_pu_target(X, Y, 25., 0.0)
     regressed_Y = predict(model, X)
 #    regressed_Y = get_mass_constrained_ys(X, regressed_Y)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)

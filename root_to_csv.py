@@ -32,8 +32,10 @@ for filename, new_filename in zip(filenames, new_filenames):
             "met", "metphi",
             "genBosonMass", "genBosonPt", "genBosonEta", "genBosonPhi",
             "genMetPt", "genMetPhi",
-			"genMatchedLep1LV.fCoordinates.fM", "genMatchedLep1LV.fCoordinates.fPt", "genMatchedLep1LV.fCoordinates.fEta", "genMatchedLep1LV.fCoordinates.fPhi", 
-			"genMatchedLep2LV.fCoordinates.fM", "genMatchedLep2LV.fCoordinates.fPt", "genMatchedLep2LV.fCoordinates.fEta", "genMatchedLep2LV.fCoordinates.fPhi"
+            "genMatchedLep1LV.fCoordinates.fM", "genMatchedLep1LV.fCoordinates.fPt", "genMatchedLep1LV.fCoordinates.fEta", "genMatchedLep1LV.fCoordinates.fPhi", 
+            "genMatchedLep2LV.fCoordinates.fM", "genMatchedLep2LV.fCoordinates.fPt", "genMatchedLep2LV.fCoordinates.fEta", "genMatchedLep2LV.fCoordinates.fPhi",
+            "metcov00", "metcov01", "metcov10", "metcov11"
+            
 ])
 
     csvfile = open("data/"+new_filename+'.csv', 'wb')
@@ -43,6 +45,6 @@ for filename, new_filename in zip(filenames, new_filenames):
         met = FourMomentum(0, a[12], 0, a[13], False)
         genmet = FourMomentum(0, a[18], 0, a[19], False)
         fake_met = FourMomentum(0, met.px - genmet.px, met.py - genmet.py, 0)
-        writer.writerow([b for b in a] + [fake_met.pt, fake_met.phi])
+        writer.writerow([b for b in a] + [fake_met.px, fake_met.py])
     csvfile.close()
 

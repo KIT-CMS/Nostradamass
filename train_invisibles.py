@@ -1,6 +1,6 @@
 from os import environ
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-environ['CUDA_VISIBLE_DEVICES'] = "1"
+environ['CUDA_VISIBLE_DEVICES'] = "2"
 import copy
 import csv
 import matplotlib
@@ -235,9 +235,9 @@ def custom_loss(y_true, y_pred):
     gen_mass = y_true[:,6]
     dm = K.mean(K.square(y_pred[:,6] - y_true[:,6]) ) / gen_mass
 #    gen_mass = 1.0
-    dx = K.mean(K.square(y_pred[:,0] - y_true[:,0])/gen_mass) + K.mean(K.square(y_pred[:,3] - y_true[:,3])/gen_mass) + K.mean(K.square(y_pred[:,7] - y_true[:,7])/gen_mass)
-    dy = K.mean(K.square(y_pred[:,1] - y_true[:,1])/gen_mass) + K.mean(K.square(y_pred[:,4] - y_true[:,4])/gen_mass) + K.mean(K.square(y_pred[:,8] - y_true[:,8])/gen_mass)
-    dz = K.mean(K.square(y_pred[:,2] - y_true[:,2])/gen_mass) + K.mean(K.square(y_pred[:,5] - y_true[:,5])/gen_mass)
+    dx = (K.square(y_pred[:,0] - y_true[:,0])/gen_mass) + (K.square(y_pred[:,3] - y_true[:,3])/gen_mass) + (K.square(y_pred[:,7] - y_true[:,7])/gen_mass)
+    dy = (K.square(y_pred[:,1] - y_true[:,1])/gen_mass) + (K.square(y_pred[:,4] - y_true[:,4])/gen_mass) + (K.square(y_pred[:,8] - y_true[:,8])/gen_mass)
+    dz = (K.square(y_pred[:,2] - y_true[:,2])/gen_mass) + (K.square(y_pred[:,5] - y_true[:,5])/gen_mass)
 
     e_squared = K.square(y_true[:,12] +
                          K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2])) +
@@ -249,21 +249,21 @@ def custom_loss(y_true, y_pred):
     m_loss = K.mean(K.square((e_squared - p_squared - K.square(gen_mass)) / K.square(gen_mass)))
 
     # impulserhaltung der met
-    dmet_x = K.mean(K.square((y_pred[:,0] + y_pred[:,3] + y_pred[:,7]) - y_true[:,9]) / gen_mass)
-    dmet_y = K.mean(K.square((y_pred[:,1] + y_pred[:,4] + y_pred[:,8]) - y_true[:,10]) / gen_mass)
+    dmet_x = (K.square((y_pred[:,0] + y_pred[:,3] + y_pred[:,7]) - y_true[:,9]) / gen_mass)
+    dmet_y = (K.square((y_pred[:,1] + y_pred[:,4] + y_pred[:,8]) - y_true[:,10]) / gen_mass)
 
     # tau-masse
-    dm_tau_1 = K.mean((K.square(y_true[:,16] + K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2]))) -
+    dm_tau_1 = 25*((K.square(y_true[:,16] + K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2]))) -
                      ( K.square(y_true[:,17] + y_pred[:,0]) + K.square(y_true[:,18] + y_pred[:,1]) + K.square(y_true[:,19] + y_pred[:,2])) -
                        mtau_squared)/gen_mass)
 
-    dm_tau_2 = K.mean((K.square(y_true[:,20] + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))) -
+    dm_tau_2 = 25*((K.square(y_true[:,20] + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))) -
                      ( K.square(y_true[:,21] + y_pred[:,3]) + K.square(y_true[:,22] + y_pred[:,4]) + K.square(y_true[:,23] + y_pred[:,5])) -
                        mtau_squared)/gen_mass)
 
     #return dm + dx + dy + dz + m_loss + 20*dmet_x + 20*dmet_y + dm_tau_1 + dm_tau_2
     #return dx + dy + dz + dm_tau_1 + dm_tau_2
-    return dm_tau_1 + dm_tau_2 + dx + dy
+    return K.mean(dm_tau_1 + dm_tau_2 + dx + dy + dmet_x + dmet_y)
 
 def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
     from keras.models import Sequential
@@ -279,7 +279,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     bias_initializer = "Zeros"
     print "x-shape: " , X.shape
     print "y-shape: " , Y.shape
-    X, Y = add_pu_target(X, Y, 0., 0.0)
+    X, Y = add_pu_target(X, Y, 25., 0.0)
     print "x-shape: " , X.shape
     print "y-shape: " , Y.shape
     
