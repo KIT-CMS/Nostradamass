@@ -56,10 +56,99 @@ colors = {
     "color_visible" : 'yellow',
     "color_true" : 'green' }
 
+def get_pz(a,b,e,x,y,z):
+    #m = np.float64(1.77682)
+    m = np.square(np.float64(1.77682))
+    a = np.float64(a)
+    b = np.float64(b)
+    wurzel = (
+              4 * np.power(a, 2) * np.power(x, 2)
+            + 4 * np.power(a, 2) * np.power(z, 2) 
+            + 8 * a * b * x * y 
+            + 4 * a * m * x 
+            + 4 * a * np.power(x, 3) 
+            + 4 * a * x * np.power(y, 2) 
+            + 4 * a * x * np.power(z, 2) 
+            + 4 * np.power(b, 2) * np.power(y, 2) 
+            + 4 * np.power(b, 2) * np.power(z, 2) 
+            + 4 * b * m * y 
+            + 4 * b * np.power(x, 2) * y 
+            + 4 * b * np.power(y, 3) 
+            + 4 * b * y * np.power(z, 2) 
+            + 2 * m * np.power(x, 2) 
+            + 2 * m * np.power(y, 2) 
+            + 2 * m * np.power(z, 2) 
+            + 2 * np.power(x, 2) * np.power(y, 2) 
+            + 2 * np.power(x, 2) * np.power(z, 2) 
+            + 2 * np.power(y, 2) * np.power(z, 2) 
+            + np.power(m, 2) 
+            + np.power(x, 4) 
+            + np.power(y, 4) 
+            + np.power(z, 4) 
+            + np.power(e, 4)
+            - 2 * np.power(e, 2) * np.power(z, 2) 
+            - 4 * np.power(e, 2) * np.power(a, 2) 
+            - 2 * np.power(e, 2) * np.power(y, 2) 
+            - 2 * np.power(e, 2) * np.power(x, 2) 
+            - 4 * np.power(e, 2) * np.power(b, 2) 
+            - 2 * np.power(e, 2) * m 
+            - 4 * np.power(e, 2) * b * y 
+            - 4 * np.power(e, 2) * a * x 
+            )
+    plus = ( 
+              4 * np.power(a, 2) * np.power(x, 2)
+            + 4 * np.power(a, 2) * np.power(z, 2) 
+            + 8 * a * b * x * y 
+            + 4 * a * m * x 
+            + 4 * a * np.power(x, 3) 
+            + 4 * a * x * np.power(y, 2) 
+            + 4 * a * x * np.power(z, 2) 
+            + 4 * np.power(b, 2) * np.power(y, 2) 
+            + 4 * np.power(b, 2) * np.power(z, 2) 
+            + 4 * b * m * y 
+            + 4 * b * np.power(x, 2) * y 
+            + 4 * b * np.power(y, 3) 
+            + 4 * b * y * np.power(z, 2) 
+            + 2 * m * np.power(x, 2) 
+            + 2 * m * np.power(y, 2) 
+            + 2 * m * np.power(z, 2) 
+            + 2 * np.power(x, 2) * np.power(y, 2) 
+            + 2 * np.power(x, 2) * np.power(z, 2) 
+            + 2 * np.power(y, 2) * np.power(z, 2) 
+            + np.power(m, 2) 
+            + np.power(x, 4) 
+            + np.power(y, 4) 
+            + np.power(z, 4) 
+            + np.power(e, 4)
+            )
+    minus = (
+            - 2 * np.power(e, 2) * np.power(z, 2) 
+            - 4 * np.power(e, 2) * np.power(a, 2) 
+            - 2 * np.power(e, 2) * np.power(y, 2) 
+            - 2 * np.power(e, 2) * np.power(x, 2) 
+            - 4 * np.power(e, 2) * np.power(b, 2) 
+            - 2 * np.power(e, 2) * m 
+            - 4 * np.power(e, 2) * b * y 
+            - 4 * np.power(e, 2) * a * x 
+
+    )
+    print "wurzel: ", wurzel, ", plus: ", plus, " minus: ", minus, " scale: ", plus/(plus-minus), " / ", minus/(plus-minus)
+    wurzel = max(0, wurzel)
+    solution = (4 * e * np.sqrt(wurzel) - z * (-8 * a * x - 8 * b * y - 4 * m - 4 * np.power(x, 2) - 4 * np.power(y, 2) - 4 * np.power(z, 2) + 4 * np.power(e, 2)))/(2 * (4 * np.power(e, 2) - 4 * np.power(z, 2)))
+    print "solution", solution
+    print ""
+    return solution
+
+def get_mass_constrained_ys(X, Y):
+    for line in range(Y.shape[0]):
+        Y[line,2] = get_pz(Y[line,0], Y[line,1], X[line,0], X[line,1], X[line,2], X[line,3])
+        Y[line,5] = get_pz(Y[line,3], Y[line,4], X[line,4], X[line,5], X[line,6], X[line,7])
+    return Y
+
+
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
     from train_invisibles import smear_met_relative, add_pu_target
-    X, Y = add_pu_target(X, Y, 0, 0)
 
     X = smear_met_relative(X, magnitude = 0.)
 
@@ -112,7 +201,7 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
     # Y: 12-15: 4-vector visible
 
     # target/regressed neutrino vectors
-    for a in range(scaled_Y[0].shape[0]):
+    for a in range(15):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
         arange = [-400,400]
@@ -175,6 +264,43 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".png"))
         plt.tight_layout()
         plt.close()
+# tau mass
+    tau_1_orig_cartesian = [ FourMomentum( X[i,0] + np.sqrt(np.square(Y[i,0]) + np.square(Y[i,1]) + np.square(Y[i,2])),
+                                 X[i,1] + Y[i,0],
+                                 X[i,2] + Y[i,1],
+                                 X[i,3] + Y[i,2]) for i in range(X.shape[0])]
+
+    tau_1_orig_phys = np.array( [ [tau_1_orig_cartesian[i].pt,
+                                   tau_1_orig_cartesian[i].eta, 
+                                   tau_1_orig_cartesian[i].phi,
+                                   tau_1_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
+    tau_2_orig_cartesian = [ FourMomentum( X[i,4] + np.sqrt(np.square(scaled_Y[i,3]) + np.square(scaled_Y[i,4]) + np.square(scaled_Y[i,5])),
+                                 X[i,5] + scaled_Y[i,3],
+                                 X[i,6] + scaled_Y[i,4],
+                                 X[i,7] + scaled_Y[i,5]) for i in range(X.shape[0])]
+    tau_2_orig_phys = np.array( [ [tau_2_orig_cartesian[i].pt,
+                                   tau_2_orig_cartesian[i].eta, 
+                                   tau_2_orig_cartesian[i].phi,
+                                   tau_2_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
+    for a in range(4):
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+#        arange = [-0,700]
+        arange = [0,30]
+    
+        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
+        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
+#        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
+#        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
+#        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        ax.set_xlabel("mass  (GeV)")
+        ax.set_ylabel("arb. units")
+        ax.set_title("Tau mass (" + channel + ")")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".png"))
+        plt.close()
 
     # compare gen met and regressed met
     regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
@@ -200,6 +326,7 @@ if __name__ == '__main__':
     elif in_filename[-4:] == ".pkl":
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
-    X, Y = add_pu_target(X, Y, 15., 0.0)
+    X, Y = add_pu_target(X, Y, 0., 0.0)
     regressed_Y = predict(model, X)
+#    regressed_Y = get_mass_constrained_ys(X, regressed_Y)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)

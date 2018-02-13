@@ -94,12 +94,13 @@ for index, process in enumerate(processes):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ['CUDA_VISIBLE_DEVICES'] = "3"
     from keras.models import load_model
-    from plot_invisibles import full_fourvector
+    from plot_invisibles import full_fourvector, get_mass_constrained_ys
     from train_invisibles import custom_loss
 
     model = load_model(os.path.join(modelpath), custom_objects={'custom_loss':custom_loss } )
 
     scaled_Y = model.predict(X)
+    #scaled_Y = get_mass_constrained_ys(X, scaled_Y)
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
@@ -219,6 +220,45 @@ for index, process in enumerate(processes):
 ##        plt.tight_layout()
 ##        plt.savefig(os.path.join(outpath, process+"-target-vs-regressed"+str(a)+".png"))
 ##        plt.close()
+
+# tau mass
+    tau_1_orig_cartesian = [ FourMomentum( X[i,0] + np.sqrt(np.square(scaled_Y[i,0]) + np.square(scaled_Y[i,1]) + np.square(scaled_Y[i,2])),
+                                 X[i,1] + scaled_Y[i,0],
+                                 X[i,2] + scaled_Y[i,1],
+                                 X[i,3] + scaled_Y[i,2]) for i in range(X.shape[0])]
+
+    tau_1_orig_phys = np.array( [ [tau_1_orig_cartesian[i].pt,
+                                   tau_1_orig_cartesian[i].eta, 
+                                   tau_1_orig_cartesian[i].phi,
+                                   tau_1_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
+    tau_2_orig_cartesian = [ FourMomentum( X[i,4] + np.sqrt(np.square(scaled_Y[i,3]) + np.square(scaled_Y[i,4]) + np.square(scaled_Y[i,5])),
+                                 X[i,5] + scaled_Y[i,3],
+                                 X[i,6] + scaled_Y[i,4],
+                                 X[i,7] + scaled_Y[i,5]) for i in range(X.shape[0])]
+    tau_2_orig_phys = np.array( [ [tau_2_orig_cartesian[i].pt,
+                                   tau_2_orig_cartesian[i].eta, 
+                                   tau_2_orig_cartesian[i].phi,
+                                   tau_2_orig_cartesian[i].m()] for i in range(len(tau_1_orig_cartesian))])
+
+    for a in range(4):
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+#        arange = [-0,700]
+        arange = None
+    
+        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
+        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
+#        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
+#        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
+#        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        ax.set_xlabel("mass  (GeV)")
+        ax.set_ylabel("arb. units")
+        ax.set_title("Tau mass (" + channel + ")")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(outpath, process+"-taumass"+str(a)+".png"))
+        plt.close()
 
 for a in range(4):
     fig = plt.figure(figsize=(5,5))

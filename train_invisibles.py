@@ -41,7 +41,7 @@ def count_neutrinos(in_string):
         return 1
 
 def add_pu_target(X, Y, offset, slope):
-    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+9])
+    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+17])
     tmp_X = X.copy()
    
     for i in range(tmp_Y.shape[0]):
@@ -54,8 +54,10 @@ def add_pu_target(X, Y, offset, slope):
         tmp_X[i,9] = tmp_X[i,9] + smear_y
 
         vis = [X[i,0] + X[i,4], X[i,1]+X[i,5], X[i,2]+X[i,6], X[i,3]+X[i,7]]
+        tau_1 = [X[i,0], X[i,1], X[i,2], X[i,3]]
+        tau_2 = [X[i,4], X[i,5], X[i,6], X[i,7]]
 
-        tmp_Y[i] = np.array([a for a in Y[i]] + [smear_x, smear_y, tmp_X[i,8], tmp_X[i,9], pT] + vis)
+        tmp_Y[i] = np.array([a for a in Y[i]] + [smear_x, smear_y, tmp_X[i,8], tmp_X[i,9], pT] + vis + tau_1 + tau_2)
 
     return tmp_X, tmp_Y
 
@@ -226,7 +228,9 @@ def load_model(model_path):
     # Y: 9/10: smeared met???
     # Y: 11: pt
     # Y: 12-15: 4-vector visible
-
+    # Y: 16-19: 4-vector tau1
+    # Y: 20-23: 4-vector tau2
+mtau_squared = np.square(np.float64(1.776))
 def custom_loss(y_true, y_pred):
     gen_mass = y_true[:,6]
     dm = K.mean(K.square(y_pred[:,6] - y_true[:,6]) ) / gen_mass
@@ -235,9 +239,9 @@ def custom_loss(y_true, y_pred):
     dy = K.mean(K.square(y_pred[:,1] - y_true[:,1])/gen_mass) + K.mean(K.square(y_pred[:,4] - y_true[:,4])/gen_mass) + K.mean(K.square(y_pred[:,8] - y_true[:,8])/gen_mass)
     dz = K.mean(K.square(y_pred[:,2] - y_true[:,2])/gen_mass) + K.mean(K.square(y_pred[:,5] - y_true[:,5])/gen_mass)
 
-    nu_energy = K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2])) + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))
-
-    e_squared = K.square(y_true[:,12] + nu_energy)
+    e_squared = K.square(y_true[:,12] +
+                         K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2])) +
+                         K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5])))
 
     p_squared = (K.square(y_true[:,13] + y_pred[:,0] + y_pred[:,3]) +
                  K.square(y_true[:,14] + y_pred[:,1] + y_pred[:,4]) +
@@ -248,8 +252,18 @@ def custom_loss(y_true, y_pred):
     dmet_x = K.mean(K.square((y_pred[:,0] + y_pred[:,3] + y_pred[:,7]) - y_true[:,9]) / gen_mass)
     dmet_y = K.mean(K.square((y_pred[:,1] + y_pred[:,4] + y_pred[:,8]) - y_true[:,10]) / gen_mass)
 
+    # tau-masse
+    dm_tau_1 = K.mean((K.square(y_true[:,16] + K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2]))) -
+                     ( K.square(y_true[:,17] + y_pred[:,0]) + K.square(y_true[:,18] + y_pred[:,1]) + K.square(y_true[:,19] + y_pred[:,2])) -
+                       mtau_squared)/gen_mass)
 
-    return dm + dx + dy + dz + m_loss + 20*dmet_x + 20*dmet_y
+    dm_tau_2 = K.mean((K.square(y_true[:,20] + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))) -
+                     ( K.square(y_true[:,21] + y_pred[:,3]) + K.square(y_true[:,22] + y_pred[:,4]) + K.square(y_true[:,23] + y_pred[:,5])) -
+                       mtau_squared)/gen_mass)
+
+    #return dm + dx + dy + dz + m_loss + 20*dmet_x + 20*dmet_y + dm_tau_1 + dm_tau_2
+    #return dx + dy + dz + dm_tau_1 + dm_tau_2
+    return dm_tau_1 + dm_tau_2 + dx + dy
 
 def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
     from keras.models import Sequential
@@ -265,7 +279,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     bias_initializer = "Zeros"
     print "x-shape: " , X.shape
     print "y-shape: " , Y.shape
-    X, Y = add_pu_target(X, Y, 10., 0.0)
+    X, Y = add_pu_target(X, Y, 0., 0.0)
     print "x-shape: " , X.shape
     print "y-shape: " , Y.shape
     
