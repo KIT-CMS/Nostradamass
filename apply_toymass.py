@@ -241,9 +241,10 @@ for index, process in enumerate(processes):
 #        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
 #        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 #        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.set_xlabel("mass  (GeV)")
-        ax.set_ylabel("arb. units")
-        ax.set_title("Tau mass (" + channel + ")")
+        if a == 3:
+            ax.set_xlabel("mass  (GeV)")
+            ax.set_ylabel("arb. units")
+        ax.set_title("Tau property (" + channel + ")")
         plt.legend()
         plt.tight_layout()
         plt.savefig(os.path.join(outpath, process+"-taumass"+str(a)+".png"))

@@ -246,7 +246,7 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         ranges = [[0,500],
             [-8,8],
             [-4,4],
-            [0,600]]
+            [0,1200]]
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
         n, bins, patches = plt.hist(target_physfourvectors[:,a], 100, normed=1, color='green', alpha=0.75, range=ranges[a], histtype='step', label='target')
         n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 100, normed=1, color='red', alpha=0.75, range=ranges[a], histtype='step', label='regressed')
