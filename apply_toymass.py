@@ -30,7 +30,7 @@ def fix_between(number, minimum, maximum):
 for index, process in enumerate(processes):
     filename = "data/" + process+".csv"
 
-    dim = 10
+    dim = 12
     n_events = sum(1 for line in open(filename))
     X = np.zeros([n_events, dim])
     svfit = np.zeros([n_events, 4])
@@ -65,6 +65,8 @@ for index, process in enumerate(processes):
 
             met_cov[line,:] = np.array([a[28], a[29], a[30], a[31]])
             met_unc[line,:] = np.array([np.sqrt(a[28]), np.sqrt(a[31])])
+            met_resx = np.sqrt(a[28])
+            met_resy = np.sqrt(a[31])
 
             fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
             x = np.array([  lepton_1.e,
@@ -76,7 +78,9 @@ for index, process in enumerate(processes):
                             lepton_2.py,
                             lepton_2.pz,
                             met.px,
-                            met.py
+                            met.py,
+                            met_resx,
+                            met_resy
                             ])
             X[line,:] = x
             s = FourMomentum(a[0], a[1], a[2], a[3], cartesian=False)
@@ -123,9 +127,11 @@ for index, process in enumerate(processes):
         irange = None
         n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
         n, bins, patches = plt.hist(met_unc[:,a], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="cov")
-        plt.savefig(os.path.join(outpath, process+"-fakemet"+str(a)+".png"))
-        print process, " fake met: ", np.mean(fake_met_cart[:,a]), 'toy median', np.median(fake_met_cart[:,a]), ", toy resolution: ", np.std(fake_met_cart[:,a])
+        n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
         plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, process+"-fakemet"+str(a)+".png"))
+        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
+        print process, " met cov: ", np.mean(met_unc[:,a]), ' median', np.median(met_unc[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
 
 
     for a in range(regressed_physfourvectors.shape[1]):

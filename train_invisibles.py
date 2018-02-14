@@ -1,6 +1,6 @@
 from os import environ
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-environ['CUDA_VISIBLE_DEVICES'] = "2"
+environ['CUDA_VISIBLE_DEVICES'] = "3"
 import copy
 import csv
 import matplotlib
@@ -40,18 +40,26 @@ def count_neutrinos(in_string):
     else:
         return 1
 
-def add_pu_target(X, Y, offset, slope):
+def add_pu_target(X, Y, offset, slope, loc):
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+17])
-    tmp_X = X.copy()
+    tmp_X = np.zeros([X.shape[0], X.shape[1]+2])
    
     for i in range(tmp_Y.shape[0]):
+        for j in range(X.shape[1]):
+            tmp_X[i,j] = X[i,j]
+
         pT = np.sqrt(np.square(tmp_X[i,1] + tmp_X[i,5]) + np.square(tmp_X[i,2] + tmp_X[i, 6]))
         scale = offset + np.sqrt(pT) * slope
 
-        smear_x = np.random.normal(loc = 0.0, scale = scale)
-        smear_y = np.random.normal(loc = 0.0, scale = scale)
+        cov_x = np.max([np.random.normal(loc = loc, scale = scale), 0.0])
+        cov_y = np.max([np.random.normal(loc = loc, scale = scale), 0.0])
+        smear_x = np.random.normal(loc = 0.0, scale = cov_x)
+        smear_y = np.random.normal(loc = 0.0, scale = cov_y)
         tmp_X[i,8] = tmp_X[i,8] + smear_x
         tmp_X[i,9] = tmp_X[i,9] + smear_y
+
+        tmp_X[i,10] = np.abs(cov_x)
+        tmp_X[i,11] = np.abs(cov_y)
 
         vis = [X[i,0] + X[i,4], X[i,1]+X[i,5], X[i,2]+X[i,6], X[i,3]+X[i,7]]
         tau_1 = [X[i,0], X[i,1], X[i,2], X[i,3]]
@@ -60,23 +68,6 @@ def add_pu_target(X, Y, offset, slope):
         tmp_Y[i] = np.array([a for a in Y[i]] + [smear_x, smear_y, tmp_X[i,8], tmp_X[i,9], pT] + vis + tau_1 + tau_2)
 
     return tmp_X, tmp_Y
-
-def smear_met_relative(X, magnitude):
-    new_X = X.copy()
-    pT = np.sqrt(np.square(X[:,1]+X[:,5]) + np.square(X[:,2]+X[:,6]))
-    for i in range(X.shape[0]):
-        new_X[i,8] = 0#X[i,8] + np.random.normal(loc = 0.0, scale = pT[i] * magnitude)
-        new_X[i,9] = 0#X[i,9] + np.random.normal(loc = 0.0, scale = pT[i] * magnitude)
-
-    return new_X
-
-def smear_met(X, magnitude):
-    new_X = X.copy()
-    for i in range(X.shape[0]):
-        new_X[i,8] = X[i,8] + np.random.normal(loc = 0.0, scale = magnitude)
-        new_X[i,9] = X[i,9] + np.random.normal(loc = 0.0, scale = magnitude)
-
-    return new_X
 
 def load_from_log(in_filename, out_filename, save_cache=False, out_folder=""):
     n_events = sum(1 for line in open(in_filename))
@@ -253,11 +244,11 @@ def custom_loss(y_true, y_pred):
     dmet_y = (K.square((y_pred[:,1] + y_pred[:,4] + y_pred[:,8]) - y_true[:,10]) / gen_mass)
 
     # tau-masse
-    dm_tau_1 = 25*((K.square(y_true[:,16] + K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2]))) -
+    dm_tau_1 = ((K.square(y_true[:,16] + K.sqrt( K.square(y_pred[:,0]) + K.square(y_pred[:,1]) + K.square(y_pred[:,2]))) -
                      ( K.square(y_true[:,17] + y_pred[:,0]) + K.square(y_true[:,18] + y_pred[:,1]) + K.square(y_true[:,19] + y_pred[:,2])) -
                        mtau_squared)/gen_mass)
 
-    dm_tau_2 = 25*((K.square(y_true[:,20] + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))) -
+    dm_tau_2 = ((K.square(y_true[:,20] + K.sqrt( K.square(y_pred[:,3]) + K.square(y_pred[:,4]) + K.square(y_pred[:,5]))) -
                      ( K.square(y_true[:,21] + y_pred[:,3]) + K.square(y_true[:,22] + y_pred[:,4]) + K.square(y_true[:,23] + y_pred[:,5])) -
                        mtau_squared)/gen_mass)
 
@@ -277,11 +268,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     set_session(sess)
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
-    print "x-shape: " , X.shape
-    print "y-shape: " , Y.shape
-    X, Y = add_pu_target(X, Y, 25., 0.0)
-    print "x-shape: " , X.shape
-    print "y-shape: " , Y.shape
+    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
     
     if previous_model == None:    
         model = Sequential()
@@ -290,10 +277,10 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
   #      model.add(Dropout(0.01))
         model.add(Dense(750, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
   #      model.add(Dropout(0.01))
-        model.add(Dense(750, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dense(750, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dropout(0.01))
         model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
 #        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
@@ -305,7 +292,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 20)
+    early_stopping = EarlyStopping(patience = 50)
 
 
     from sklearn.model_selection import train_test_split
@@ -331,7 +318,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
                     batch_size=50000, # Batch size
                     epochs=300, # Number of training epochs
                     validation_data = (X_test, Y_test),
-                    callbacks = [model_checkpoint])#early_stopping
+                    callbacks = [model_checkpoint, early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
 

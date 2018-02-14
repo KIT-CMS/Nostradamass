@@ -159,11 +159,7 @@ def original_tau(te_i, tx_i, ty_i, tz_i, nx_i, ny_i, nz_i, X, Y):
 
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
-    from train_invisibles import smear_met_relative
 
-    X = smear_met_relative(X, magnitude = 0.)
-
-   
     channel = [ r'$\tau_{had} \tau_{had}$',
                 r'$\mu \tau_{had}$', 
                 r'$e \tau_{had}$', 
@@ -328,7 +324,7 @@ if __name__ == '__main__':
     elif in_filename[-4:] == ".pkl":
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
-    X, Y = add_pu_target(X, Y, 25., 0.0)
+    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
     regressed_Y = predict(model, X)
 #    regressed_Y = get_mass_constrained_ys(X, regressed_Y)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)
