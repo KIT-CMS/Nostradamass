@@ -1,5 +1,6 @@
 import numpy as np
 from fourvector import FourVector, FourMomentum
+import pickle
 
 def add_pu_target(X, Y, offset, slope, loc):
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+17])

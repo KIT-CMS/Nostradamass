@@ -11,7 +11,6 @@ import math
 import numpy as np
 seed = 1234
 np.random.seed(seed)
-import pickle
 
 from matplotlib.colors import LogNorm
 
@@ -38,12 +37,18 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
         model.add(GaussianNoise(stddev=1.0))
-        model.add(Dropout(0.1))
-        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dropout(0.1))
-        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dropout(0.05))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dropout(0.05))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dropout(0.05))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+#        model.add(Dropout(0.05))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
         model.compile(loss=custom_loss, optimizer='adam')
     else:
