@@ -19,11 +19,7 @@ from matplotlib.colors import LogNorm
 
 selected_channel = 'tt'
 
-def transform_fourvector(vin):
-    cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
-    phys = np.array([ [a.pt, a.eta, a.phi, math.sqrt(a.m2()) if a.m2() > 0 else 0] for a in vin])
-    return phys, cartesian
-
+from plot_invisibles import transform_fourvector
 def get_decay(in_string):
     neutrino_id = in_string[:-1].split(',')[-1]
     if neutrino_id == '':
@@ -225,7 +221,6 @@ mtau_squared = np.square(np.float64(1.776))
 def custom_loss(y_true, y_pred):
     gen_mass = y_true[:,6]
 #    dm = K.mean(K.square(y_pred[:,6] - y_true[:,6]) ) / gen_mass
-#    gen_mass = 1.0
     dx = (K.square(y_pred[:,0] - y_true[:,0])/gen_mass) + (K.square(y_pred[:,3] - y_true[:,3])/gen_mass) + (K.square(y_pred[:,7] - y_true[:,7])/gen_mass)
     dy = (K.square(y_pred[:,1] - y_true[:,1])/gen_mass) + (K.square(y_pred[:,4] - y_true[:,4])/gen_mass) + (K.square(y_pred[:,8] - y_true[:,8])/gen_mass)
 #    dz = (K.square(y_pred[:,2] - y_true[:,2])/gen_mass) + (K.square(y_pred[:,5] - y_true[:,5])/gen_mass)
@@ -271,15 +266,12 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
         model.add(GaussianNoise(stddev=1.0))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-#        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-#        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dropout(0.1))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dropout(0.1))
+        model.add(Dense(1000, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
         model.compile(loss=custom_loss, optimizer='adam')
     else:

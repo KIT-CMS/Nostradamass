@@ -20,23 +20,21 @@ import keras.backend as K
 from matplotlib.colors import LogNorm
 selected_channel = 'tt'
 
-def transform_fourvector(vin):
-    cartesian = np.array([ [a.e, a.px, a.py, a.pz] for a in vin])
-    phys = np.array([ [a.pt, a.eta, a.phi, math.sqrt(a.m2()) if a.m2() > 0 else 0] for a in vin])
+def transform_fourvector(vin, cartesian_types=np.float64, hc_types=np.float64):
+    cartesian = np.array([ a.as_list() for a in vin], dtype=cartesian_types)
+    phys = np.array([ a.as_list_hcc() for a in vin], dtype=hc_types)
     return phys, cartesian
 
-from train_invisibles import load_from_log, predict, transform_fourvector, load_from_pickle, load_model
 
 
-def full_fourvector(scaled_Y, L):
+def full_fourvector(scaled_Y, L, vlen=6, cartesian_types=np.float64, hc_types=np.float64):
     # transformation
-    vlen = 6#scaled_Y.shape[1] - 9
     energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(0, vlen, 3)])
     
     regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
                                                                                             (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
                                                                                             (L[i,2] + sum([scaled_Y[i,j] for j in range(1, vlen, 3)])),
-                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])])
+                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])], cartesian_types, hc_types)
     return regressed_physfourvectors, regressed_fourvectors
 
 def mod_fourvector(scaled_Y, Y, L):
@@ -311,8 +309,8 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
 
 # plotting script
-from train_invisibles import add_pu_target
 if __name__ == '__main__':
+    from train_invisibles import load_from_log, predict, load_from_pickle, load_model, add_pu_target
     in_filename = sys.argv[1]
     model_path = sys.argv[2]
     out_folder = sys.argv[3]

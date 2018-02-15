@@ -22,13 +22,18 @@ def contract(lhs, rhs):
     return contract_tuples(lhs.components(),rhs.components(),METRIC)
 
 class FourVector(object):
-    def __init__(self,x0,x1,x2,x3,cartesian=True):
-        if cartesian:
+    def __init__(self,x0,x1,x2,x3,cartesian=True,massless=False):
+        if massless and cartesian:
+            self._x0 = np.sqrt(np.square(x1) + np.square(x2) + np.square(x3))
+            self._x1 = x1
+            self._x2 = x2
+            self._x3 = x3
+        elif cartesian:
             self._x0 = x0
             self._x1 = x1
             self._x2 = x2
             self._x3 = x3
-        else:
+        elif not cartesian and not massless:
             m = x0
             pt = x1
             eta = x2
@@ -38,6 +43,8 @@ class FourVector(object):
             self._x3 = math.sinh(eta) * pt
             sqrt_sum = np.sum(np.array([self._x1, self._x2, self._x3, m])**2)
             self._x0 = np.sqrt(sqrt_sum)
+        else:
+            raise RuntimeError("Invalid configuration of cartesian and massless Fourvector")
     
     def __add__(lhs,rhs):
         return FourVector(*[sum(x) for x in zip(lhs.components(),rhs.components())])
@@ -90,6 +97,18 @@ class FourVector(object):
         
     def perp(self):
         return math.sqrt(self.perp2())
+
+    def as_list(self):
+        return (self.x0, self.x1, self.x2, self.x3)
+
+    def as_list_hcc(self):
+        return (self.pt, self.eta, self.phi, np.sqrt(self.m2()) if self.m2() > 0 else 0)
+
+    def as_numpy_array(self):
+        return np.array(self.as_list())
+
+    def as_numpy_array_hcc(self):
+        return np.array(self.as_list_hcc())
         
 class FourMomentum(FourVector):
     def __add__(lhs,rhs):
