@@ -20,141 +20,15 @@ import keras.backend as K
 from matplotlib.colors import LogNorm
 selected_channel = 'tt'
 
-def transform_fourvector(vin, cartesian_types=np.float64, hc_types=np.float64):
-    cartesian = np.array([ a.as_list() for a in vin], dtype=cartesian_types)
-    phys = np.array([ a.as_list_hcc() for a in vin], dtype=hc_types)
-    return phys, cartesian
-
-
-
-def full_fourvector(scaled_Y, L, vlen=6, cartesian_types=np.float64, hc_types=np.float64):
-    # transformation
-    energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(0, vlen, 3)])
-    
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
-                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
-                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(1, vlen, 3)])),
-                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])], cartesian_types, hc_types)
-    return regressed_physfourvectors, regressed_fourvectors
-
-def mod_fourvector(scaled_Y, Y, L):
-    # transformation
-    vlen = scaled_Y.shape[1]
-    energy = np.sqrt( np.square(Y[:,0]) + np.square(Y[:,1]) + np.square(Y[:,2])) + np.sqrt( np.square(Y[:,3]) + np.square(Y[:,4]) + np.square(Y[:,5]))
-    
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
-                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(0, vlen, 3)])),
-                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(1, vlen, 3)])),
-                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(2, vlen, 3)]))) for i in range(L.shape[0])])
-    return regressed_physfourvectors, regressed_fourvectors
+from common_functions import full_fourvector, transform_fourvector
+from common_functions import original_tau
+from common_functions import load_from_log, load_from_pickle, load_model, add_pu_target
 
 colors = {
     "color_nn" : 'red',
     "color_svfit" : 'blue',
     "color_visible" : 'yellow',
     "color_true" : 'green' }
-
-def get_pz(a,b,e,x,y,z):
-    #m = np.float64(1.77682)
-    m = np.square(np.float64(1.77682))
-    a = np.float64(a)
-    b = np.float64(b)
-    wurzel = (
-              4 * np.power(a, 2) * np.power(x, 2)
-            + 4 * np.power(a, 2) * np.power(z, 2) 
-            + 8 * a * b * x * y 
-            + 4 * a * m * x 
-            + 4 * a * np.power(x, 3) 
-            + 4 * a * x * np.power(y, 2) 
-            + 4 * a * x * np.power(z, 2) 
-            + 4 * np.power(b, 2) * np.power(y, 2) 
-            + 4 * np.power(b, 2) * np.power(z, 2) 
-            + 4 * b * m * y 
-            + 4 * b * np.power(x, 2) * y 
-            + 4 * b * np.power(y, 3) 
-            + 4 * b * y * np.power(z, 2) 
-            + 2 * m * np.power(x, 2) 
-            + 2 * m * np.power(y, 2) 
-            + 2 * m * np.power(z, 2) 
-            + 2 * np.power(x, 2) * np.power(y, 2) 
-            + 2 * np.power(x, 2) * np.power(z, 2) 
-            + 2 * np.power(y, 2) * np.power(z, 2) 
-            + np.power(m, 2) 
-            + np.power(x, 4) 
-            + np.power(y, 4) 
-            + np.power(z, 4) 
-            + np.power(e, 4)
-            - 2 * np.power(e, 2) * np.power(z, 2) 
-            - 4 * np.power(e, 2) * np.power(a, 2) 
-            - 2 * np.power(e, 2) * np.power(y, 2) 
-            - 2 * np.power(e, 2) * np.power(x, 2) 
-            - 4 * np.power(e, 2) * np.power(b, 2) 
-            - 2 * np.power(e, 2) * m 
-            - 4 * np.power(e, 2) * b * y 
-            - 4 * np.power(e, 2) * a * x 
-            )
-    plus = ( 
-              4 * np.power(a, 2) * np.power(x, 2)
-            + 4 * np.power(a, 2) * np.power(z, 2) 
-            + 8 * a * b * x * y 
-            + 4 * a * m * x 
-            + 4 * a * np.power(x, 3) 
-            + 4 * a * x * np.power(y, 2) 
-            + 4 * a * x * np.power(z, 2) 
-            + 4 * np.power(b, 2) * np.power(y, 2) 
-            + 4 * np.power(b, 2) * np.power(z, 2) 
-            + 4 * b * m * y 
-            + 4 * b * np.power(x, 2) * y 
-            + 4 * b * np.power(y, 3) 
-            + 4 * b * y * np.power(z, 2) 
-            + 2 * m * np.power(x, 2) 
-            + 2 * m * np.power(y, 2) 
-            + 2 * m * np.power(z, 2) 
-            + 2 * np.power(x, 2) * np.power(y, 2) 
-            + 2 * np.power(x, 2) * np.power(z, 2) 
-            + 2 * np.power(y, 2) * np.power(z, 2) 
-            + np.power(m, 2) 
-            + np.power(x, 4) 
-            + np.power(y, 4) 
-            + np.power(z, 4) 
-            + np.power(e, 4)
-            )
-    minus = (
-            - 2 * np.power(e, 2) * np.power(z, 2) 
-            - 4 * np.power(e, 2) * np.power(a, 2) 
-            - 2 * np.power(e, 2) * np.power(y, 2) 
-            - 2 * np.power(e, 2) * np.power(x, 2) 
-            - 4 * np.power(e, 2) * np.power(b, 2) 
-            - 2 * np.power(e, 2) * m 
-            - 4 * np.power(e, 2) * b * y 
-            - 4 * np.power(e, 2) * a * x 
-
-    )
-    print "wurzel: ", wurzel, ", plus: ", plus, " minus: ", minus, " scale: ", plus/(plus-minus), " / ", minus/(plus-minus)
-    wurzel = max(0, wurzel)
-    solution = (4 * e * np.sqrt(wurzel) - z * (-8 * a * x - 8 * b * y - 4 * m - 4 * np.power(x, 2) - 4 * np.power(y, 2) - 4 * np.power(z, 2) + 4 * np.power(e, 2)))/(2 * (4 * np.power(e, 2) - 4 * np.power(z, 2)))
-    print "solution", solution
-    print ""
-    return solution
-
-def get_mass_constrained_ys(X, Y):
-    for line in range(Y.shape[0]):
-        Y[line,2] = get_pz(Y[line,0], Y[line,1], X[line,0], X[line,1], X[line,2], X[line,3])
-        Y[line,5] = get_pz(Y[line,3], Y[line,4], X[line,4], X[line,5], X[line,6], X[line,7])
-    return Y
-
-def original_tau(te_i, tx_i, ty_i, tz_i, nx_i, ny_i, nz_i, X, Y):
-    tau_orig_cartesian = [ FourMomentum( X[i,te_i] + np.sqrt(np.square(Y[i,nx_i]) + np.square(Y[i,ny_i]) + np.square(Y[i,nz_i])),
-                                 X[i,tx_i] + Y[i,nx_i],
-                                 X[i,ty_i] + Y[i,ny_i],
-                                 X[i,tz_i] + Y[i,nz_i]) for i in range(X.shape[0])]
-    tau_orig_phys = np.array( [ [tau_orig_cartesian[i].pt,
-                                 tau_orig_cartesian[i].eta, 
-                                 tau_orig_cartesian[i].phi,
-                                 tau_orig_cartesian[i].m() if tau_orig_cartesian[i].m2()>0 else 0.0] for i in range(len(tau_orig_cartesian))])
-
-    return tau_orig_phys
-
 
 def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
@@ -310,7 +184,6 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
 # plotting script
 if __name__ == '__main__':
-    from train_invisibles import load_from_log, predict, load_from_pickle, load_model, add_pu_target
     in_filename = sys.argv[1]
     model_path = sys.argv[2]
     out_folder = sys.argv[3]
@@ -323,6 +196,5 @@ if __name__ == '__main__':
         X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
     model = load_model(model_path)
     X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
-    regressed_Y = predict(model, X)
-#    regressed_Y = get_mass_constrained_ys(X, regressed_Y)
+    regressed_Y = model.predict(X)
     plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)

@@ -7,7 +7,10 @@ from fourvector import *
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from train_neutrino import transform_fourvector
+from common_functions import transform_fourvector
+from common_functions import full_fourvector
+from common_functions import load_model
+from common_functions import original_tau
 from plot_invisibles import colors
 channel = r'$\tau_{had} \tau_{had}$'
 processes = ["susy100", "susy200", "susy300", "susy400",  "susy500", "susy600", "vbfSM", "ggHSM"]
@@ -102,14 +105,10 @@ for index, process in enumerate(processes):
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ['CUDA_VISIBLE_DEVICES'] = "3"
-    from keras.models import load_model
-    from plot_invisibles import full_fourvector, get_mass_constrained_ys
-    from train_invisibles import custom_loss
 
-    model = load_model(os.path.join(modelpath), custom_objects={'custom_loss':custom_loss } )
+    model = load_model(os.path.join(modelpath))
 
     scaled_Y = model.predict(X)
-    #scaled_Y = get_mass_constrained_ys(X, scaled_Y)
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
@@ -221,7 +220,6 @@ for index, process in enumerate(processes):
 ##        plt.close()
 
 # tau mass
-    from plot_invisibles import original_tau
     tau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, scaled_Y)
     tau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, scaled_Y)
 #    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
