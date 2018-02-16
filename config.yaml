@@ -1,0 +1,12 @@
+# mode to run on. Choose either "friend" to crate files called just like the input files with the ending ".friend.root" or "update" to modify the input files
+mode: friend
+full output: True
+
+# specify which training to apply on which tree
+models:
+    tt_nominal/ntuple: /storage/b/friese/trainings/neutrinos_57_medimnet5x100/model.0.298-7.44.hdf5
+
+# input files
+files:
+- /storage/b/friese/htautau/artus/2018-01-23_13-20_analysis/workdir/se_output/merged/SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8/SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8.root 
+- /storage/b/friese/htautau/artus/2018-01-23_13-20_analysis/workdir/se_output/merged/SUSYGluGluToHToTauTauM200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8/SUSYGluGluToHToTauTauM200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8.root

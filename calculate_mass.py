@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from root_numpy import root2array, array2tree, array2root
+from root_numpy import root2array, array2tree, array2root, list_trees
 from ROOT import TTree, TFile
 import numpy as np
 
@@ -9,6 +9,9 @@ from common_functions import get_index
 import hashlib
 
 # load the input file
+channel = 'tt'
+
+n_neutrinos = 2
 
 branches=[
         "m_1", "pt_1", "eta_1", "phi_1", 
@@ -80,49 +83,37 @@ def calculate_arrays(l, args):
         f.Close()
         l.release()
 
-from multiprocessing import Pool, Manager
-from functools import partial
-import os
 def get_output_filename(input_file):
     return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
 
+from multiprocessing import Pool, Manager
+from functools import partial
+import os, io, sys, yaml
 if __name__ == '__main__':
+    # first argument: config file
+    config_file = sys.argv[1]
+    print config_file
 
-import yaml
-import io
+    # Read YAML file
+    with open(config_file, 'r') as stream:
+        data_loaded = yaml.load(stream)
 
-# Define data
-data = {'a list': [1, 42, 3.141, 1337, 'help', u'€'],
-        'a string': 'bla',
-        'another dict': {'foo': 'bar',
-                         'key': 'value',
-                         'the answer': 42}}
+    import pprint
+    models = data_loaded["models"]
+    files = data_loaded["files"]
+    full_output = data_loaded["full output"]
 
-# Write YAML file
-with io.open('data.yaml', 'w', encoding='utf8') as outfile:
-    yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
-
-# Read YAML file
-with open("data.yaml", 'r') as stream:
-    data_loaded = yaml.load(stream)
-
-print(data == data_loaded)
-
-    # parser
-    channel = 'tt'
-    full_output = True
-
-    n_neutrinos = 2
-
-    model_path = "/storage/b/friese/trainings/neutrinos_57_medimnet5x100/model.0.298-7.44.hdf5"
-    input_file = "/storage/b/friese/htautau/artus/2018-01-23_13-20_analysis/workdir/se_output/merged/SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8/SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8.root"
-    treename = "ntuple"
-    foldername = "tt_nominal"
     args = []
-    args.append([input_file, treename, foldername, get_output_filename(input_file), model_path, full_output])
-
-
-    # do the actual work in the calculate_arrays functions and write the results to files that can be friended with the input trees
+    for f in files:
+        trees = list_trees(f)
+        for tree in trees:
+            if tree in models:
+                model_path = models[tree]
+            else:
+                continue
+            foldername, treename = tree.split("/")
+            output_filename = get_output_filename(f)
+            args.append([f, treename, foldername, output_filename, model_path, full_output])
     # todo: do not write friend trees but modify the original ones with the new entries
     pool = Pool()
     m = Manager()
