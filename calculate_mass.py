@@ -26,6 +26,7 @@ def calculate_arrays(l, args):
         output_file = args[3]
         model_path = args[4]
         full_output = args[5]
+        print os.getpid(), " file", os.path.basename(output_file)
 
         arr = root2array(input_file, foldername+"/"+treename, branches = branches)
 
@@ -72,7 +73,10 @@ def calculate_arrays(l, args):
                 outputs.append(neutrino_hc)
                 outputs.append(neutrino_cartesian)
         l.acquire()
+        print os.getpid(), ":lock hold by process creating", output_file
 
+        if not os.path.exists(os.path.dirname(output_file)):
+            os.makedirs(os.path.dirname(output_file))
         f = TFile(output_file, "RECREATE")
         f.mkdir(foldername)
         getattr(f, foldername).cd()
@@ -82,9 +86,13 @@ def calculate_arrays(l, args):
         f.Write()
         f.Close()
         l.release()
+        print os.getpid(), ": lock released by process "
 
 def get_output_filename(input_file):
-    return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
+    #return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
+    filename = os.path.basename(input_file)
+    dirname = os.path.join("/storage/b/friese/m_nn/Artus_2017-12-02/tt_1/", os.path.dirname(input_file).split("/")[-1], filename)
+    return dirname 
 
 from multiprocessing import Pool, Manager
 from functools import partial
@@ -114,8 +122,10 @@ if __name__ == '__main__':
             foldername, treename = tree.split("/")
             output_filename = get_output_filename(f)
             args.append([f, treename, foldername, output_filename, model_path, full_output])
+    pprint.pprint(args)
+#    sys.exit()
     # todo: do not write friend trees but modify the original ones with the new entries
-    pool = Pool()
+    pool = Pool(processes=2)
     m = Manager()
     l = m.Lock()
     func = partial(calculate_arrays, l)

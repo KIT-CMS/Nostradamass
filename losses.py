@@ -1,6 +1,15 @@
 import numpy as np
 import keras.backend as K
 mtau_squared = np.square(np.float64(1.776))
+    # Y: 0-5 : Neutrino 1/2 x, y, z
+    # Y: 6 : gen Mass
+
+    # Y: 7/8: Smear x/y
+    # Y: 9/10: smeared met???
+    # Y: 11: pt
+    # Y: 12-15: 4-vector visible
+    # Y: 16-19: 4-vector tau1
+    # Y: 20-23: 4-vector tau2
 def custom_loss(y_true, y_pred):
     gen_mass = y_true[:,6]
 #    dm = K.mean(K.square(y_pred[:,6] - y_true[:,6]) ) / gen_mass

@@ -1,6 +1,23 @@
 import numpy as np
-from fourvector import FourVector, FourMomentum
+import csv
+from fourvector import FourVector, FourMomentum, create_FourMomentum
 import pickle
+selected_channel = 'tt'
+import os
+
+def get_index(channel, n_neutrino):
+    if channel == 'tt':
+        if n_neutrino == 0:
+            return "nt_1"
+        else:
+            return "nt_2"
+    elif channel == "mt" or channel == "et":
+        if n_neutrino == 0:
+            return "nt_1"
+        elif n_neutrino == 1:
+            return "nl_1"
+        else:
+            return "nt_1"
 
 def add_pu_target(X, Y, offset, slope, loc):
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+17])

@@ -2,7 +2,6 @@
 # variables: pt, eta, phi, m
 # target : - sum(2vector)
 import copy
-import csv
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
