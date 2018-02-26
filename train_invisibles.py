@@ -1,27 +1,17 @@
 from os import environ
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 environ['CUDA_VISIBLE_DEVICES'] = "1"
-import copy
-import csv
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import sys, os
-import math
 import numpy as np
 seed = 1234
 np.random.seed(seed)
 
-from matplotlib.colors import LogNorm
-
-selected_channel = 'tt'
 
 from common_functions import add_pu_target
 from common_functions import transform_fourvector
-from common_functions import load_from_log, load_from_pickle, load_model
-from losses import custom_loss
+from common_functions import load_from_root, load_model, load_from_pickle
 
-def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_model=None):
+def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', previous_model=None,):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
     from keras.backend.tensorflow_backend import set_session
@@ -33,8 +23,17 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
     set_session(sess)
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
-    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
-    
+    #X, Y = add_pu_target(X, Y, 6., 24.)
+    X, Y = add_pu_target(X, Y, 0., 0.)
+
+    if channel == "tt":
+        from losses import loss_fully_hadronic as loss
+    elif channel == "mt" or channel == "et":
+        from losses import loss_semi_leptonic as loss
+    else:
+        from losses import loss_fully_leptonic as loss
+        
+ 
     if previous_model == None:    
         model = Sequential()
         model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
@@ -44,7 +43,7 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
         model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=custom_loss, optimizer='Adamax')
+        model.compile(loss=loss, optimizer='Adamax')
     else:
         model = load_model(previous_model)
 
@@ -66,28 +65,25 @@ def train_model(X, Y, model_filename = "toy_mass.h5", out_folder='', previous_mo
                                             save_weights_only=False,
                                             mode='auto',
                                             period=1)
-        model.fit(tmp_X, Y_train, # Training data
-                    batch_size=5000, # Batch size
-                    epochs=1000, # Number of training epochs
+        model.fit(tmp_X, Y_train,
+                    batch_size=5000,
+                    epochs=10000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
     model.save(os.path.join(out_folder, model_filename))
     return model
     
 if __name__ == '__main__':
-    in_filename = sys.argv[1]
+    channel = sys.argv[1]
     out_folder = sys.argv[2]
-    if len(sys.argv) > 3:
-        previous_model = sys.argv[3]
-    else:
-        previous_model = None
-    print "previous: ", previous_model
+    in_filenames = sys.argv[3:]
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
-    if in_filename[-4:] == ".log":
-        X, Y, B, M, L, phys_M = load_from_log(in_filename, "pickle.pkl", out_folder=out_folder, save_cache=True)
-    elif in_filename[-4:] == ".pkl":
-        X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
+    f, ext = os.path.splitext(in_filenames[0])
+    if len(in_filenames) and ext == ".pkl":
+        X, Y, B, M, L, phys_M = load_from_pickle(in_filenames[0])
+    else:
+        X, Y, B, M, L, phys_M = load_from_root(in_filenames, channel, out_folder = out_folder)
 
-    model = train_model(X, Y, out_folder=out_folder, previous_model = previous_model)
+    model = train_model(X, Y, out_folder=out_folder, channel = channel)
     model.summary()

@@ -1,12 +1,10 @@
 # generate 2-dim array / event, 0 padded
 # variables: pt, eta, phi, m
 # target : - sum(2vector)
-import copy
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import sys, os
-import math
 import numpy as np
 from fourvector import *
 seed = 1234
@@ -17,11 +15,10 @@ environ['THEANO_FLAGS'] = 'gcc.cxxflags=-march=corei7'
 environ['THEANO_FLAGS'] = 'device=gpu3'
 import keras.backend as K
 from matplotlib.colors import LogNorm
-selected_channel = 'tt'
 
 from common_functions import full_fourvector, transform_fourvector
-from common_functions import original_tau
-from common_functions import load_from_log, load_from_pickle, load_model, add_pu_target
+from common_functions import original_tauh, original_taul
+from common_functions import load_from_root, load_model, add_pu_target, load_from_pickle
 
 colors = {
     "color_nn" : 'red',
@@ -29,22 +26,32 @@ colors = {
     "color_visible" : 'yellow',
     "color_true" : 'green' }
 
-def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
+def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
 
-    channel = [ r'$\tau_{had} \tau_{had}$',
-                r'$\mu \tau_{had}$', 
-                r'$e \tau_{had}$', 
-                r'$e \mu$', 
-                r'$ee$', 
-                r'$\mu\mu$']
+    channels = { "tt": r'$\tau_{had} \tau_{had}$',
+                 "mt": r'$\mu \tau_{had}$', 
+                 "et": r'$e \tau_{had}$', 
+                 "em": r'$e \mu$', 
+                 "ee": r'$ee$', 
+                 "mm": r'$\mu\mu$'}
 
-    titles = [ r'$p_x^{\nu^{\tau}_1}$',
+    titles = [ 
+               r'$e^{{\tau^1_{vis}}}$',
+               r'$p_x^{{\tau^1_{vis}}}$',
+               r'$p_y^{{\tau^1_{vis}}}$',
+               r'$p_z^{{\tau^1_{vis}}}$',
+               r'$e^{{\tau^2_{vis}}}$',
+               r'$p_x^{{\tau^2_{vis}}}$',
+               r'$p_y^{{\tau^2_{vis}}}$',
+               r'$p_z^{{\tau^2_{vis}}}$',
+
+               r'$p_x^{\nu^{\tau}_1}$',
                r'$p_y^{\nu^{\tau}_1}$',
                r'$p_z^{\nu^{\tau}_1}$',
                r'$p_x^{\nu^{\tau}_2}$',
-               r'$p_x^{\nu^{\tau}_2}$',
                r'$p_y^{\nu^{\tau}_2}$',
                r'$p_z^{\nu^{\tau}_2}$',
+
                r'$p_x^{\nu^{\mu)}}$',
                r'$p_y^{\nu^{\mu)}}$',
                r'$p_z^{\nu^{\mu)}}$',
@@ -58,18 +65,27 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
                r'PUy',
             ]
     from operator import itemgetter 
-    if selected_channel == 'tt':
-        titles = itemgetter(*[0,1,2,3,4,5])(titles)
-        channel = channel[0]
-    elif selected_channel == 'mt':
-        titles = itemgetter(*[0,1,2,6,7,8,3,4,5])(titles)
-        channel = channel[1]
-    elif selected_channel == 'et':
-        titles = itemgetter(*[13,14,15,10,11,12])(titles)
-        channel = channel[2]
+    title =["smearing $p_x$", "smearing $p_z$", "smeared MET $p_x$", "smeared MET $p_y$"]
+    if channel == 'tt':
+        title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
+        title = title + ["gen mass"] 
+        title = title + list(itemgetter(*[8,9,10,11,12,13])(titles))
 
-    titles = titles + ("genmass", "smearing x", "smearing y", "smearedMETx", "smearedMETy", "vispt", "boson e", "boson x", "boson y", "boson z")
-    print titles
+        tau_1_orig_phys = original_tauh(0, 1, 2, 3, 13, 14, 15, X, scaled_Y)
+        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 16, 17, 18, X, scaled_Y)
+        gentau_1_orig_phys = original_tauh(0, 1, 2, 3, 13, 14, 15, X, Y)
+        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 16, 17, 18, X, Y)
+    elif channel == 'mt':
+        title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
+        title = title + ["gen mass"] 
+        title = title + list(itemgetter(*[8,9,10,14,15,16,11,12,13])(titles))
+
+        tau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, 17, 18, X, scaled_Y)
+        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 19, 20, 21, X, scaled_Y)
+        gentau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, 17, 18, X, Y)
+        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 19, 20, 21, X, Y)
+    elif channel == 'et':
+        titles = itemgetter(*[13,14,15,10,11,12])(titles)
     # Y: 0-5 : Neutrino 1/2 x, y, z
     # Y: 6 : gen Mass
 
@@ -79,7 +95,7 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
     # Y: 12-15: 4-vector visible
 
     # target/regressed neutrino vectors
-    for a in range(15):
+    for a in range(Y.shape[1]):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
         arange = [-400,400]
@@ -94,9 +110,9 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
         print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - Y[:,a])
         ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
         ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - Y[:,a]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.set_xlabel(titles[a] + "   (GeV)")
+        ax.set_xlabel(title[a] + "   (GeV)")
         ax.set_ylabel("arb. units")
-        ax.set_title("Regression target vs. Result (" + channel + ")")
+        ax.set_title("Regression target vs. Result (" + channels[channel] + ")")
 
         plt.legend()
         plt.tight_layout()
@@ -105,7 +121,7 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
     # transform to plottable systems
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
-    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
+    #regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
     target_physfourvectors, target_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in B])
     vis_physfourvectors, vis_fourvectors = transform_fourvector([ FourMomentum(a[0], a[1], a[2], a[3]) for a in L])
     
@@ -136,17 +152,15 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("arb. units")
-        ax.set_title("Gen vs. regressed system (" + channel + ")")
+        ax.set_title("Gen vs. regressed system (" + channels[channel] + ")")
 
         plt.legend(loc='best')
         plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".png"))
         plt.tight_layout()
         plt.close()
 # tau mass
-    tau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, scaled_Y)
-    tau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, scaled_Y)
-    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
-    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, Y)
+
+    labels = ["$p_T$", "$\eta$", "$\phi$", "$mass$"]
 
     for a in range(4):
         fig = plt.figure(figsize=(5,5))
@@ -163,37 +177,40 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, out_folder=''):
 #        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
 #        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 #        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.set_xlabel("mass  (GeV)")
+        ax.set_xlabel(labels[a])
         ax.set_ylabel("arb. units")
-        ax.set_title("Tau mass (" + channel + ")")
+        ax.set_title("Tau mass (" + channels[channel] + ")")
         plt.legend()
         plt.tight_layout()
         plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".png"))
         plt.close()
 
     # compare gen met and regressed met
-    regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
-    if True:
-        irange = None
-        pts = plt.figure()
-        n, bins, patches = plt.hist(regressed_met_pt[:], 150, normed=1, color=colors["color_nn"], histtype='step', label='target')
-        n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, color=colors["color_true"], histtype='step', label='target')
-        plt.savefig(os.path.join(out_folder, "met_genmet.png"))
+    #regressed_met_pt = np.sqrt(np.square(scaled_Y[:,0] + scaled_Y[:,3]) + np.square(scaled_Y[:,1] + scaled_Y[:,4]))
+    #if True:
+    #    irange = None
+    #    pts = plt.figure()
+    #    n, bins, patches = plt.hist(regressed_met_pt[:], 150, normed=1, color=colors["color_nn"], histtype='step', label='target')
+    #    n, bins, patches = plt.hist(phys_M[:,0], 150, normed=1, color=colors["color_true"], histtype='step', label='target')
+    #    plt.savefig(os.path.join(out_folder, "met_genmet.png"))
 
 
 # plotting script
 if __name__ == '__main__':
-    in_filename = sys.argv[1]
+    channel = sys.argv[1]
     model_path = sys.argv[2]
     out_folder = sys.argv[3]
+    in_filenames = sys.argv[4:]
 
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
-    if (in_filename[-4:] == ".log") or (in_filename[-5:] == ".data"):
-        X, Y, B, M, L, phys_M = load_from_log(in_filename, "pickle.pkl", out_folder=out_folder, save_cache=True)
-    elif in_filename[-4:] == ".pkl":
-        X, Y, B, M, L, phys_M = load_from_pickle(in_filename)
+    f, ext = os.path.splitext(in_filenames[0])
+    if len(in_filenames) and ext == ".pkl":
+        X, Y, B, M, L, phys_M = load_from_pickle(in_filenames[0])
+    else:
+        X, Y, B, M, L, phys_M = load_from_root(in_filenames, channel, out_folder = out_folder)
     model = load_model(model_path)
-    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
+#    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
+    X, Y = add_pu_target(X, Y, 0.,  0)
     regressed_Y = model.predict(X)
-    plot(regressed_Y, X, Y, B, M, L, phys_M, out_folder)
+    plot(regressed_Y, X, Y, B, M, L, phys_M, channel, out_folder)

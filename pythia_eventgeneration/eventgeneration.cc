@@ -14,6 +14,7 @@
 #include <TTree.h>
 //#include "TROOT.h"
 //#include "TLorentzVector.h"
+#include <time.h>
 
 using namespace Pythia8;
 
@@ -44,7 +45,7 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
     pythia.readString("Beams:idB = 2212");
     pythia.readString("Beams:eCM = 13000.");
     pythia.readString("HiggsSM:gg2H = on");
-    pythia.readString("Main:numberOfEvents = 10");
+    pythia.readString("Main:numberOfEvents = 10000");
     pythia.readString("Random:setSeed = true");
     pythia.readString("ProcessLevel:resonanceDecays = on");
     pythia.readString("PartonLevel:all = on");// if off, generation stops before parton level events (partons are quarks and gluons)
@@ -179,7 +180,7 @@ diTauEvents::~diTauEvents()
 
 diTauEvents::diTauEvents(std::string out_file_name)
 {
-    out_file = new TFile(out_file_name.c_str(), "UPDATE");
+    out_file = new TFile(out_file_name.c_str(), "RECREATE");
     out_tree = new TTree("tree", "tree");
 
     std::string particle_postfix[] = {"B", "1", "2", "t1n", "l1n", "t2n", "l2n"};
@@ -226,6 +227,10 @@ bool fiducialCuts(Particle* p)
 
 int main( int argc, char * argv[] )
 {
+
+    clock_t clkStart;
+    clock_t clkFinish;
+    clkStart = clock();
     assert(argc == 5);
 
     Pythia pythia;
@@ -248,7 +253,7 @@ int main( int argc, char * argv[] )
     in_mass >> int_mass;
     configure(argv, pythia, flavour1, flavour2, inverted, int_mass, in_seed.str());
 
-    diTauEvents evt("test_filename.root");
+    diTauEvents evt("m_" + in_mass.str() + "_" + in_seed.str() + "_" +channel+"_"+str_invert+".root");
 
     // actually run the event generation 
     pythia.init();  // pythia initialization   
@@ -268,8 +273,17 @@ int main( int argc, char * argv[] )
     std::vector<int> negTauDaughters, posTauDaughters;
     std::vector<int> negTauVis, posTauVis;
     int tries = 0;
+    bool writeOutput = true;
     for ( int iEvent = 0; iEvent < nEvents; ++iEvent )
     {
+        if (( tries%100 == 0) && writeOutput)
+        {
+            clkFinish = clock();
+            std::cout << "Events/tries: " << iEvent << " / " << tries << ", runtime (s): " << (clkFinish - clkStart)/1000000 << std::endl;
+            writeOutput = false;
+        }
+        if ( tries%100 == 1)
+            writeOutput = true;
         ++tries;
         negTauDaughters.clear();
         posTauDaughters.clear();
@@ -327,13 +341,8 @@ int main( int argc, char * argv[] )
         if (!goodEvent)
         {
             --iEvent;
-            std::cout << " ->not good" << std::endl;
             continue;
         }
-            std::cout << " -> good!!!" << std::endl;
-    
-
-
         // writing out
         evt.next();
         evt.add(pythia.event[bosonIdx]);
@@ -364,7 +373,7 @@ int main( int argc, char * argv[] )
         evt.fill();
     }
     evt.write();
-    std::cout << "Tries/events: " << tries << "/" << nEvents << std::endl;
+    std::cout << "Summary Events/tries: " << nEvents << " / " << tries << ", runtime: " << clkFinish - clkStart << std::endl;
     evt.~diTauEvents();
   return 0;
 
