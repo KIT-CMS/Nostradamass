@@ -56,7 +56,7 @@ def load_from_root(in_filenames, channel, out_folder=None):
     n_events = in_array.shape[0]
     
     dim = 10
-    targets = 13
+    targets = 9
     X = np.zeros([n_events, dim])
     Y = np.zeros([n_events, targets])
     B = np.zeros([n_events, 4])
@@ -77,6 +77,10 @@ def load_from_root(in_filenames, channel, out_folder=None):
             met = met + tau2ln
 
         visible = lepton_1 + lepton_2  
+
+        invisible_1 = tau1tn  if (channel[0]=="t") else tau1tn + tau1ln
+        invisible_2 = tau2tn  if (channel[1]=="t") else tau2tn + tau2ln
+
         x = np.array([  lepton_1.e,
                         lepton_1.px,
                         lepton_1.py,
@@ -89,18 +93,15 @@ def load_from_root(in_filenames, channel, out_folder=None):
                         met.py
                         ])
         y = np.array([  boson.m(), 
-                        tau1tn.px,
-                        tau1tn.py,
-                        tau1tn.pz,
-                        tau1ln.px,
-                        tau1ln.py,
-                        tau1ln.pz,
-                        tau2tn.px,
-                        tau2tn.py,
-                        tau2tn.pz,
-                        tau2ln.px,
-                        tau2ln.py,
-                        tau2ln.pz ]
+                        invisible_1.e,
+                        invisible_1.px,
+                        invisible_1.py,
+                        invisible_1.pz,
+                        invisible_2.e,
+                        invisible_2.px,
+                        invisible_2.py,
+                        invisible_2.pz
+                         ]
                         )
         X[line_number,:] = x
         Y[line_number,:] = y
@@ -112,13 +113,6 @@ def load_from_root(in_filenames, channel, out_folder=None):
         B[line_number,:] = b
         L[line_number,:] = l
         
-    if channel == 'tt':
-        for a in [4,4,4,7,7,7]:
-            Y = np.delete(Y, a, 1)
-
-    if channel == 'mt' or channel == 'et':
-        for a in [10,10,10]:
-            Y = np.delete(Y, a, 1)
     if out_folder != None:
         cache_output = open(os.path.join(out_folder, 'cache.pkl'), 'wb')
         pickle.dump(X, cache_output)
@@ -157,15 +151,14 @@ def transform_fourvector(vin, cartesian_types=np.float64, hc_types=np.float64):
 
 
 
-def full_fourvector(scaled_Y, L, vlen=6, cartesian_types=np.float64, hc_types=np.float64):
+def full_fourvector(scaled_Y, L, cartesian_types=np.float64, hc_types=np.float64):
     # transformation
     offset = 13 
-    energy = sum([np.sqrt( sum([np.square(scaled_Y[:,i+j]) for i in range(3)])) for j in range(13, 13+vlen, 3)])
-    
-    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + energy[i]),
-                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(offset + 0, offset + vlen, 3)])),
-                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(offset + 1, offset + vlen, 3)])),
-                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(offset + 2, offset + vlen, 3)]))) for i in range(L.shape[0])], cartesian_types, hc_types)
+    vlen = 8 
+    regressed_physfourvectors, regressed_fourvectors = transform_fourvector([ FourMomentum( (L[i,0] + sum([scaled_Y[i,j] for j in range(offset + 0, offset + vlen, 4)])),
+                                                                                            (L[i,1] + sum([scaled_Y[i,j] for j in range(offset + 1, offset + vlen, 4)])),
+                                                                                            (L[i,2] + sum([scaled_Y[i,j] for j in range(offset + 2, offset + vlen, 4)])),
+                                                                                            (L[i,3] + sum([scaled_Y[i,j] for j in range(offset + 3, offset + vlen, 4)]))) for i in range(L.shape[0])], cartesian_types, hc_types)
     return regressed_physfourvectors, regressed_fourvectors
 
 
@@ -181,16 +174,30 @@ def original_tauh(te_i, tx_i, ty_i, tz_i, nx_i, ny_i, nz_i, X, Y):
 
     return tau_orig_phys
 
-def original_taul(te_i, tx_i, ty_i, tz_i, ntx_i, nty_i, ntz_i, nlx_i, nly_i, nlz_i, X, Y):
-    tau_orig_cartesian = [ FourMomentum( X[i,te_i] + np.sqrt(np.square(Y[i,ntx_i]) + np.square(Y[i,nty_i]) + np.square(Y[i,ntz_i])) +
-                                                     np.sqrt(np.square(Y[i,nlx_i]) + np.square(Y[i,nly_i]) + np.square(Y[i,nlz_i])),
-                                 X[i,tx_i] + Y[i,ntx_i] + Y[i,nlx_i],
-                                 X[i,ty_i] + Y[i,nty_i] + Y[i,nly_i],
-                                 X[i,tz_i] + Y[i,ntz_i] + Y[i,nlz_i]) for i in range(X.shape[0])]
+def original_taul(te_i, tx_i, ty_i, tz_i, ne_i, nx_i, ny_i, nz_i, X, Y):
+    tau_orig_cartesian = [ FourMomentum( X[i,te_i] + Y[i,ne_i],
+                                 X[i,tx_i] + Y[i,nx_i],
+                                 X[i,ty_i] + Y[i,ny_i],
+                                 X[i,tz_i] + Y[i,nz_i]) for i in range(X.shape[0])]
     tau_orig_phys = np.array( [ [tau_orig_cartesian[i].pt,
                                  tau_orig_cartesian[i].eta, 
                                  tau_orig_cartesian[i].phi,
-                                 tau_orig_cartesian[i].m() if tau_orig_cartesian[i].m2()>0 else 0.0] for i in range(len(tau_orig_cartesian))])
+                                 #tau_orig_cartesian[i].m() if tau_orig_cartesian[i].m2()>0 else -1.0] for i in range(len(tau_orig_cartesian))])
+                                 np.sqrt(np.abs(tau_orig_cartesian[i].m2()))] for i in range(len(tau_orig_cartesian))])
 
     return tau_orig_phys
+
+from losses import i_inv1_e, i_inv1_px, i_inv1_py, i_inv1_pz 
+from losses import i_inv2_e, i_inv2_px, i_inv2_py, i_inv2_pz 
+def predict(model_path, X, channel):
+    model = load_model(model_path)
+    Y = model.predict(X)
+
+    # fill energy if there is no extra target
+    if channel[0] == "t":
+        Y[:,i_inv1_e] = np.sqrt( np.square(Y[:,i_inv1_px]) + np.square(Y[:,i_inv1_py]) + np.square(Y[:,i_inv1_pz]))
+    if channel[1] == "t":
+        Y[:,i_inv2_e] = np.sqrt( np.square(Y[:,i_inv2_px]) + np.square(Y[:,i_inv2_py]) + np.square(Y[:,i_inv2_pz]))
+
+    return Y
 

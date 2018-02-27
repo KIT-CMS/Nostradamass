@@ -18,7 +18,7 @@ from matplotlib.colors import LogNorm
 
 from common_functions import full_fourvector, transform_fourvector
 from common_functions import original_tauh, original_taul
-from common_functions import load_from_root, load_model, add_pu_target, load_from_pickle
+from common_functions import load_from_root, load_model, add_pu_target, load_from_pickle, predict
 
 colors = {
     "color_nn" : 'red',
@@ -45,19 +45,24 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
                r'$p_y^{{\tau^2_{vis}}}$',
                r'$p_z^{{\tau^2_{vis}}}$',
 
+               r'$e^{\nu^{\tau}_1}$',
                r'$p_x^{\nu^{\tau}_1}$',
                r'$p_y^{\nu^{\tau}_1}$',
                r'$p_z^{\nu^{\tau}_1}$',
+               r'$e^{\nu^{\tau}_2}$',
                r'$p_x^{\nu^{\tau}_2}$',
                r'$p_y^{\nu^{\tau}_2}$',
                r'$p_z^{\nu^{\tau}_2}$',
 
+               r'$e^{\nu^{\mu)}}$',
                r'$p_x^{\nu^{\mu)}}$',
                r'$p_y^{\nu^{\mu)}}$',
                r'$p_z^{\nu^{\mu)}}$',
+               r'$e^{\nu^{\tau)}}$',
                r'$p_x^{\nu^{\tau)}}$',
                r'$p_y^{\nu^{\tau)}}$',
                r'$p_z^{\nu^{\tau)}}$',
+               r'$e^{\nu^{e)}}$',
                r'$p_x^{\nu^{e)}}$',
                r'$p_y^{\nu^{e)}}$',
                r'$p_z^{\nu^{e)}}$',
@@ -69,40 +74,30 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
     if channel == 'tt':
         title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
         title = title + ["gen mass"] 
-        title = title + list(itemgetter(*[8,9,10,11,12,13])(titles))
+        title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
 
-        tau_1_orig_phys = original_tauh(0, 1, 2, 3, 13, 14, 15, X, scaled_Y)
-        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 16, 17, 18, X, scaled_Y)
-        gentau_1_orig_phys = original_tauh(0, 1, 2, 3, 13, 14, 15, X, Y)
-        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 16, 17, 18, X, Y)
+        tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
+        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
+        gentau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, Y)
+        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, Y)
     elif channel == 'mt':
         title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
         title = title + ["gen mass"] 
-        title = title + list(itemgetter(*[8,9,10,14,15,16,11,12,13])(titles))
+        title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
 
-        tau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, 17, 18, X, scaled_Y)
-        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 19, 20, 21, X, scaled_Y)
-        gentau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, 17, 18, X, Y)
-        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 19, 20, 21, X, Y)
+        tau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, scaled_Y)
+        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
+        gentau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, Y)
+        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, Y)
     elif channel == 'et':
         titles = itemgetter(*[13,14,15,10,11,12])(titles)
-    # Y: 0-5 : Neutrino 1/2 x, y, z
-    # Y: 6 : gen Mass
 
-    # Y: 7/8: Smear x/y
-    # Y: 9/10: smeared met???
-    # Y: 11: pt
-    # Y: 12-15: 4-vector visible
-
-    # target/regressed neutrino vectors
-    for a in range(Y.shape[1]):
+    for a in range(13,21,1):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
         arange = [-400,400]
-        if a%3 == 2: # Z-Componentes
-            arange = [-1000,1000]
-        if (a==7) or (a==8):
-            arange = [-50,50]
+        if a == 13 or a == 17:
+            arange = [-5,600]
 
         n, bins, patches = plt.hist(Y[:,a], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
         n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
@@ -167,16 +162,12 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
         ax = fig.add_subplot(111)
         arange = None
         if a == 3:
-            arange = [-10,15]
+            arange = [-10,70]
     
-        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
+        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color="gray", histtype='step', range = arange, label='regressed tau1')
         n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="green", histtype='step', range = arange, label='regressed tau2')
-        n, bins, patches = plt.hist(gentau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='target tau1')
+        n, bins, patches = plt.hist(gentau_1_orig_phys[:,a], 150, normed=1, color="black", histtype='step', range = arange, label='target tau1')
         n, bins, patches = plt.hist(gentau_2_orig_phys[:,a], 150, normed=1, color="orange", histtype='step', range = arange, label='target tau2')
-#        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
-#        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
-#        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
         ax.set_xlabel(labels[a])
         ax.set_ylabel("arb. units")
         ax.set_title("Tau mass (" + channels[channel] + ")")
@@ -209,8 +200,7 @@ if __name__ == '__main__':
         X, Y, B, M, L, phys_M = load_from_pickle(in_filenames[0])
     else:
         X, Y, B, M, L, phys_M = load_from_root(in_filenames, channel, out_folder = out_folder)
-    model = load_model(model_path)
-#    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
     X, Y = add_pu_target(X, Y, 0.,  0)
-    regressed_Y = model.predict(X)
+    regressed_Y = predict(model_path, X, channel)
+#    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
     plot(regressed_Y, X, Y, B, M, L, phys_M, channel, out_folder)

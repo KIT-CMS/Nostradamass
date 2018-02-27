@@ -50,7 +50,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 50)
+    early_stopping = EarlyStopping(patience = 20)
 
     from sklearn.model_selection import train_test_split
 
@@ -70,7 +70,11 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                     epochs=10000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
-    model.save(os.path.join(out_folder, model_filename))
+    print os.listdir(out_folder)[0].split(".")
+    files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
+    for f in files:
+        os.remove(os.path.join(out_folder, f))
+#    model.save(os.path.join(out_folder, model_filename))
     return model
     
 if __name__ == '__main__':
