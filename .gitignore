@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+trainings
+sm-htt-analysis
+pythia_eventgeneration/condor_jobs
