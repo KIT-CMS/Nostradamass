@@ -71,26 +71,23 @@ def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
             ]
     from operator import itemgetter 
     title =["smearing $p_x$", "smearing $p_z$", "smeared MET $p_x$", "smeared MET $p_y$"]
-    if channel == 'tt':
-        title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
-        title = title + ["gen mass"] 
-        title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
+    title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
+    title = title + ["gen mass"] 
+    title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
 
+    if channel[0] == 't':
         tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
-        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
         gentau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, Y)
-        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, Y)
-    elif channel == 'mt':
-        title = title + list(itemgetter(*[0,1,2,3,4,5,6,7])(titles))
-        title = title + ["gen mass"] 
-        title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
-
+    else:
         tau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, scaled_Y)
-        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
         gentau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, Y)
+
+    if channel[1] == 't':
+        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
         gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, Y)
-    elif channel == 'et':
-        titles = itemgetter(*[13,14,15,10,11,12])(titles)
+    else:
+        tau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, scaled_Y)
+        gentau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, Y)
 
     for a in range(13,21,1):
         fig = plt.figure(figsize=(5,5))

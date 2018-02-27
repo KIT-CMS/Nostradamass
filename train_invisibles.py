@@ -1,6 +1,6 @@
 from os import environ
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-environ['CUDA_VISIBLE_DEVICES'] = "1"
+environ['CUDA_VISIBLE_DEVICES'] = "2"
 import sys, os
 import numpy as np
 seed = 1234
@@ -70,10 +70,9 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                     epochs=10000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
-    print os.listdir(out_folder)[0].split(".")
-    files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
-    for f in files:
-        os.remove(os.path.join(out_folder, f))
+#    files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
+#    for f in files:
+#        os.remove(os.path.join(out_folder, f))
 #    model.save(os.path.join(out_folder, model_filename))
     return model
     
