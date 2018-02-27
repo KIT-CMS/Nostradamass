@@ -50,7 +50,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 20)
+    early_stopping = EarlyStopping(patience = 50)
 
     from sklearn.model_selection import train_test_split
 
@@ -66,8 +66,8 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                                             mode='auto',
                                             period=1)
         model.fit(tmp_X, Y_train,
-                    batch_size=5000,
-                    epochs=10000,
+                    batch_size=50000,
+                    epochs=2000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
