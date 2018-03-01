@@ -1,6 +1,6 @@
 from os import environ
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-#environ['CUDA_VISIBLE_DEVICES'] = "2"
+#environ['CUDA_VISIBLE_DEVICES'] = "3"
 import sys, os
 import numpy as np
 seed = 1234
@@ -24,6 +24,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
     #X, Y = add_pu_target(X, Y, 6., 24.)
+    print "adding pu target"
     X, Y = add_pu_target(X, Y, 0., 0.)
 
     if channel == "tt":
@@ -50,7 +51,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 50)
+    early_stopping = EarlyStopping(patience = 2000)
 
     from sklearn.model_selection import train_test_split
 
@@ -67,7 +68,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                                             period=1)
         model.fit(tmp_X, Y_train,
                     batch_size=50000,
-                    epochs=2000,
+                    epochs=10,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
@@ -84,9 +85,9 @@ if __name__ == '__main__':
         os.makedirs(out_folder)
     f, ext = os.path.splitext(in_filenames[0])
     if len(in_filenames) and ext == ".pkl":
-        X, Y, B, M, L, phys_M = load_from_pickle(in_filenames[0])
+        X, Y, B, L = load_from_pickle(in_filenames[0])
     else:
-        X, Y, B, M, L, phys_M = load_from_root(in_filenames, channel, out_folder = out_folder)
+        X, Y, B, L, = load_from_root(in_filenames, channel)#, out_folder = out_folder)
 
     model = train_model(X, Y, out_folder=out_folder, channel = channel)
     model.summary()

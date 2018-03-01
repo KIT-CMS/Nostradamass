@@ -1,9 +1,9 @@
 import numpy as np
 import csv
 from fourvector import FourVector, FourMomentum, create_FourMomentum
-from root_numpy import root2array
 import pickle
 import os
+import time
 
 def get_index(channel, n_neutrino):
     if channel == 'tt':
@@ -20,109 +20,129 @@ def get_index(channel, n_neutrino):
             return "nt_1"
 
 def add_pu_target(X, Y, offset, loc):
+    print "Smearing MET"
+    starttime = time.time()
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+12])
     tmp_X = np.zeros([X.shape[0], X.shape[1]+2])
-   
-    for i in range(tmp_Y.shape[0]):
-        for j in range(X.shape[1]):
-            tmp_X[i,j] = X[i,j]
+    cov = offset * np.random.random_sample((X.shape[0],2)) + loc
+    smear = np.zeros([X.shape[0], 2])
+    
 
-        cov_x = np.max([np.random.normal(loc = loc, scale = offset), 0.0])
-        cov_y = np.max([np.random.normal(loc = loc, scale = offset), 0.0])
-        smear_x = np.random.normal(loc = 0.0, scale = cov_x)
-        smear_y = np.random.normal(loc = 0.0, scale = cov_y)
-        tmp_X[i,8] = tmp_X[i,8] + smear_x
-        tmp_X[i,9] = tmp_X[i,9] + smear_y
+    for i in range(X.shape[1]):
+        tmp_X[:,i] = X[:,i]
 
-        tmp_X[i,10] = np.abs(cov_x)
-        tmp_X[i,11] = np.abs(cov_y)
+    print "Smearing Loop"   
+    for i in range(cov.shape[0]):
+        if i%100000 == 1:
+            duration = time.time() - starttime
+            print "{:3.0f}".format(float(i)/tmp_Y.shape[0]*100), " %, ", \
+                 "{:4.1f}".format(duration), " seconds passed, ", \
+                 "{:8.2f}".format(i/duration), \
+                 " events/s; done in approx", "{:4.4f}".format((tmp_Y.shape[0]-i)/( i/duration)), " s"
+        smear[i,0] = np.random.normal(loc = 0.0, scale = cov[i,0])
+        smear[i,1] = np.random.normal(loc = 0.0, scale = cov[i,1])
+    tmp_X[:,10] = cov[:,0]
+    tmp_X[:,11] = cov[:,1]
 
-        tau_1 = [X[i,0], X[i,1], X[i,2], X[i,3]]
-        tau_2 = [X[i,4], X[i,5], X[i,6], X[i,7]]
 
-        tmp_Y[i] = np.array( [smear_x, smear_y, tmp_X[i,8], tmp_X[i,9]] + tau_1 + tau_2 + [a for a in Y[i]])
+    tmp_X[:,8] = tmp_X[:,8] + smear[:,0]
+    tmp_X[:,9] = tmp_X[:,9] + smear[:,1]
+
+    # fill tmp_Y
+    tmp_Y[:,0] = smear[:,0]
+    tmp_Y[:,1] = smear[:,1]
+    tmp_Y[:,2] = tmp_X[:,8]
+    tmp_Y[:,3] = tmp_X[:,9]
+    for i in range(8):
+        tmp_Y[:,i+4] = X[:,i]
+    for i in range(Y.shape[1]):
+        tmp_Y[:,i+12] = Y[:,i]
 
     return tmp_X, tmp_Y
 
-
 def load_from_root(in_filenames, channel, out_folder=None):
+    from root_pandas import read_root
     particle_postfix = ["B", "1", "2", "t1n", "l1n", "t2n", "l2n"]
-    particle_prefix = ["id", "e", "px", "py", "pz"]
+    particle_prefix = ["e", "px", "py", "pz"]
     branches = []
+    dims = 0
     for postfix in particle_postfix:
         for prefix in particle_prefix:
             branches.append(prefix + "_" + postfix)
-    in_array = root2array(in_filenames, "tree", branches = branches)
+            dims = dims + 1
+    print "loading tree from ", len(in_filenames), " files..."
+    in_array = read_root(in_filenames, "tree", columns = branches).as_matrix()
+
+
+    starttime = time.time()
     n_events = in_array.shape[0]
-    
-    dim = 10
-    targets = 9
-    X = np.zeros([n_events, dim])
-    Y = np.zeros([n_events, targets])
+    print n_events, "loaded!"
+    print "allocating memory" 
+    X = np.zeros([n_events, 10])
+    Y = np.zeros([n_events, 9])
     B = np.zeros([n_events, 4])
-    M = None#np.zeros([n_events, 4])
-    phys_M = np.zeros([n_events, 4])
     L = np.zeros([n_events, 4])
-    boson, lepton_1, lepton_2, tau1tn, tau1ln, tau2tn, tau2ln = None, None, None, None, None, None, None
+    I1 = np.zeros([n_events, 4])
+    I2 = np.zeros([n_events, 4])
 
-    for line_number, line in enumerate(in_array):
-        four_vectors = [] 
-        for index in range(0, 35, 5):
-            four_vectors.append(FourMomentum(line[index+1], line[index+2], line[index+3], line[index+4]))
-        boson, lepton_1, lepton_2, tau1tn, tau1ln, tau2tn, tau2ln = four_vectors
-        met = tau1tn + tau2tn
-        if tau1ln != None:
-            met = met + tau1ln
-        if tau2ln != None:
-            met = met + tau2ln
+    dimrange = range(dims)
 
-        visible = lepton_1 + lepton_2  
+#    print "Creating structured array..."
+#    for line_number, line in enumerate(r2numpy_array):
+#        if line_number % 100000 == 1:
+#            duration = time.time() - starttime
+#            print "{:3.0f}".format(float(line_number)/n_events*100), " %, ", \
+#                 "{:4.1f}".format(duration), " seconds passed, ", \
+#                 "{:8.2f}".format(line_number/duration), \
+#                 " events/s; done in approx", "{:4.4f}".format((n_events-line_number)/( line_number/duration)), " s"
+#        in_array[line_number,:] = [line[i] for i in dimrange]
+  
 
-        invisible_1 = tau1tn  if (channel[0]=="t") else tau1tn + tau1ln
-        invisible_2 = tau2tn  if (channel[1]=="t") else tau2tn + tau2ln
+    boson, lepton_1, lepton_2, tau1tn, tau1ln, tau2tn, tau2ln = [range(i*4,i*4+4) for i in range(7)]
 
-        x = np.array([  lepton_1.e,
-                        lepton_1.px,
-                        lepton_1.py,
-                        lepton_1.pz,
-                        lepton_2.e,
-                        lepton_2.px,
-                        lepton_2.py,
-                        lepton_2.pz,
-                        met.px,
-                        met.py
-                        ])
-        y = np.array([  boson.m(), 
-                        invisible_1.e,
-                        invisible_1.px,
-                        invisible_1.py,
-                        invisible_1.pz,
-                        invisible_2.e,
-                        invisible_2.px,
-                        invisible_2.py,
-                        invisible_2.pz
-                         ]
-                        )
-        X[line_number,:] = x
-        Y[line_number,:] = y
-        b = np.array([boson.e, boson.px, boson.py, boson.pz])
-        l = np.array([visible.e, visible.px, visible.py, visible.pz])
-        phys_m = np.array([met.pt, 0, met.phi, 0])
-        phys_M[line_number,:] = phys_m
+    print "Converting to required formats..."
+    for i in range(4):
+        B[:,i] = in_array[:,boson[i]]
 
-        B[line_number,:] = b
-        L[line_number,:] = l
-        
+    Y[:,0] = np.sqrt( np.square(B[:,0]) - np.square(B[:,1]) - np.square(B[:,2]) - np.square(B[:,3])) 
+    print "Leptons"
+
+    for i in range(4):
+        L[:,i] = in_array[:,lepton_1[i]] + in_array[:,lepton_2[i]]
+        X[:,i] = in_array[:,lepton_1[i]]
+        X[:,i+4] = in_array[:,lepton_2[i]]
+    print "Neutrinos"
+
+    if (channel[0]=="t"):
+        for i in range(4):
+            I1[:,i] = in_array[:,tau1tn[i]]
+    else:
+        for i in range(4):
+            I1[:,i] = in_array[:,tau1tn[i]]+in_array[:,tau1ln[i]]
+
+    if (channel[1]=="t"):
+        for i in range(4):
+            I2[:,i] = in_array[:,tau2tn[i]]
+    else:
+        for i in range(4):
+            I2[:,i] = in_array[:,tau2tn[i]]+in_array[:,tau2ln[i]]
+    print "MET"
+    X[:,8] = I1[:,0] + I2[:,0]
+    X[:,9] = I1[:,1] + I2[:,1]
+
+    for i in range(4):
+        Y[:,i+1] = I1[:,i]
+        Y[:,i+5] = I2[:,i]
+
+    print "Conversion done!"        
     if out_folder != None:
         cache_output = open(os.path.join(out_folder, 'cache.pkl'), 'wb')
         pickle.dump(X, cache_output)
         pickle.dump(Y, cache_output)
         pickle.dump(B, cache_output)
-        pickle.dump(M, cache_output)
         pickle.dump(L, cache_output)
-        pickle.dump(phys_M, cache_output)
         cache_output.close()
-    return X, Y, B, M, L, phys_M
+    return X, Y, B, L
 
 
 def load_from_pickle(in_filename):
@@ -130,11 +150,9 @@ def load_from_pickle(in_filename):
     X = pickle.load(cache_output)
     Y = pickle.load(cache_output)
     B = pickle.load(cache_output)
-    M = pickle.load(cache_output)
     L = pickle.load(cache_output)
-    phys_M = pickle.load(cache_output)
     cache_output.close()
-    return X, Y, B, M, L, phys_M
+    return X, Y, B, L
 
 
 

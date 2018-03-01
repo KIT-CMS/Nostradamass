@@ -26,7 +26,7 @@ colors = {
     "color_visible" : 'yellow',
     "color_true" : 'green' }
 
-def plot(scaled_Y, X, Y, B, M, L, phys_M, channel, out_folder=''):
+def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
 
     channels = { "tt": r'$\tau_{had} \tau_{had}$',
                  "mt": r'$\mu \tau_{had}$', 
@@ -194,10 +194,10 @@ if __name__ == '__main__':
         os.makedirs(out_folder)
     f, ext = os.path.splitext(in_filenames[0])
     if len(in_filenames) and ext == ".pkl":
-        X, Y, B, M, L, phys_M = load_from_pickle(in_filenames[0])
+        X, Y, B, L = load_from_pickle(in_filenames[0])
     else:
-        X, Y, B, M, L, phys_M = load_from_root(in_filenames, channel, out_folder = out_folder)
+        X, Y, B, L = load_from_root(in_filenames, channel, out_folder = out_folder)
     X, Y = add_pu_target(X, Y, 0.,  0)
     regressed_Y = predict(model_path, X, channel)
 #    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
-    plot(regressed_Y, X, Y, B, M, L, phys_M, channel, out_folder)
+    plot(regressed_Y, X, Y, B, L, channel, out_folder)
