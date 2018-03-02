@@ -1,7 +1,7 @@
 import csv
 import sys, os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
+#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import numpy as np
 from fourvector import *
 import matplotlib
@@ -9,15 +9,37 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from common_functions import transform_fourvector
 from common_functions import full_fourvector
-from common_functions import load_model
-from common_functions import original_tau
+from common_functions import predict
+from common_functions import original_tauh, original_taul
 from plot_invisibles import colors
-channel = r'$\tau_{had} \tau_{had}$'
-processes = ["susy100", "susy200", "susy300", "susy400",  "susy500", "susy600", "vbfSM", "ggHSM"]
+
+
+filenames = ["GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
+            "SUSYGluGluToHToTauTauM100_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM400_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM500_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
+folder = "/storage/b/friese/htautau/artus/2018-01-23_13-20_analysis/workdir/se_output/merged/"
+
+new_filenames = ["ggHSM",
+                "susy100",
+                "susy200",
+                "susy300",
+                "susy400",
+                "susy500",
+                "susy600",
+                "vbfSM"]
 masses = [100, 200, 300, 400, 500, 600]
 masses_sv = [105, 205, 305, 405, 505, 605]
+
+
+
+channel = r'$\tau_{had} \tau_{had}$'
 binning = [50, 50, 50, 50, 50, 50, 100, 100]
-modelpath = sys.argv[1]
+model_path = sys.argv[1]
 outpath = sys.argv[2]
 if not os.path.exists(outpath):
     os.makedirs(outpath)
@@ -30,85 +52,85 @@ widths_sv = [[],[], [], []]
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
 
-for index, process in enumerate(processes):
-    filename = "data/" + process+".csv"
+for index, filename in enumerate(filenames):
+    from root_pandas import read_root
+    process = new_filenames[index]
+    branches = ["genBosonMass", "genBosonPt", "genBosonEta", "genBosonPhi",
+            "m_sv", "pt_sv", "eta_sv", "phi_sv",
+            "m_1", "pt_1", "eta_1", "phi_1",
+            "m_2", "pt_2", "eta_2", "phi_2",
+            "met", "metphi",
+            "metcov00", "metcov11"]
+    in_array = read_root(os.path.join(folder,filename,filename+".root"), "tt_nominal/ntuple", columns = branches).as_matrix()
 
     dim = 12
-    n_events = sum(1 for line in open(filename))
+    n_events = in_array.shape[0]
     X = np.zeros([n_events, dim])
     svfit = np.zeros([n_events, 4])
+    Boson = np.zeros([n_events, 4])
     L = np.zeros([n_events, 4])
-    M = np.zeros([n_events, 4])
-    phys_M = np.zeros([n_events, 4])
+#    M = np.zeros([n_events, 4])
+#    phys_M = np.zeros([n_events, 4])
     gen = np.zeros([n_events, 4])
-    gen_phys = np.zeros([n_events, 4])
+#    gen_phys = np.zeros([n_events, 4])
 
  #   diff_svfit = np.zeros([n_events, 4])
 #    diff_nn = np.zeros([n_events, 4])
 
     fake_met_cart = np.zeros([n_events, 4])
     gen_met_phys = np.zeros([n_events, 4])
-    met_cov = np.zeros([n_events, 4])
+    met_cov = np.zeros([n_events, 2])
     met_unc = np.zeros([n_events, 2])
 
-    line = 0
-    with open(filename, 'rb') as csvfile:
-        reader = csv.reader(csvfile, delimiter=';', quotechar='|')
-        for row in reader:
-            a = [float(i) for i in row]
-            lepton_1 = FourMomentum(a[4], a[5], a[6], a[7], cartesian=False)
-            lepton_2 = FourMomentum(a[8], a[9], a[10], a[11], cartesian=False)
-            met = FourMomentum(0, a[12], 0, a[13], False)
-            gen_boson = FourMomentum(a[14], a[15], a[16], a[17], cartesian=False)
-            gen_met_phys[line,:] = np.array([a[18], 0, a[19], 0])
-            gen_met = FourMomentum( 0, a[18], 0, a[19], cartesian=False)
-
-            gen_lepton_1 = FourMomentum(a[20], a[21], a[22], a[23], cartesian=False)
-            gen_lepton_2 = FourMomentum(a[24], a[25], a[26], a[27], cartesian=False)
-
-            met_cov[line,:] = np.array([a[28], a[29], a[30], a[31]])
-            met_unc[line,:] = np.array([np.sqrt(a[28]), np.sqrt(a[31])])
-            met_resx = np.sqrt(a[28])
-            met_resy = np.sqrt(a[31])
-
-            fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
-            x = np.array([  lepton_1.e,
-                            lepton_1.px,
-                            lepton_1.py,
-                            lepton_1.pz,
-                            lepton_2.e,
-                            lepton_2.px,
-                            lepton_2.py,
-                            lepton_2.pz,
-                            met.px,
-                            met.py,
-                            met_resx,
-                            met_resy
-                            ])
-            X[line,:] = x
-            s = FourMomentum(a[0], a[1], a[2], a[3], cartesian=False)
-            svfit[line,:] = np.array([s.pt, s.eta, s.phi, s.m()])
-            l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
-            L[line,:] = l
-            m = np.array([0, met.px, met.py, 0])
-            M[line,:] = m
-            phys_M[line,:] = np.array([met.pt, 0, met.phi, 0])
-
-            gen[line,:] = np.array([gen_boson.pt, gen_boson.eta, gen_boson.phi, gen_boson.m()])
-            gen_phys[line,:] = np.array([gen_boson.e, gen_boson.px, gen_boson.py, gen_boson.pz])
-
-           # d_svfit = FourMomentum(0, s.px - gen_boson.px, s.py - gen_boson.py, s.pz - gen_boson.pz)
-           # diff_svfit[line,:] = np.array([d_svfit.pt, d_svfit.eta, d_svfit.phi, s.m() - gen_boson.m()])
-
-            line +=1
+    print in_array.size
+    for i in range(n_events):
+        a = in_array[i,:]
+        gen_boson = FourMomentum(a[0], a[1], a[2], a[3], cartesian=False)
+        s = FourMomentum(a[4], a[5], a[6], a[7], cartesian=False)
+        lepton_1 = FourMomentum(a[8], a[9], a[10], a[11], cartesian=False)
+        lepton_2 = FourMomentum(a[12], a[13], a[14], a[15], cartesian=False)
+        met = FourMomentum(0, a[16], 0, a[17], False)
 
 
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ['CUDA_VISIBLE_DEVICES'] = "3"
+        met_cov[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
+        met_resx = np.sqrt(a[18])
+        met_resy = np.sqrt(a[19])
 
-    model = load_model(os.path.join(modelpath))
+        #fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
+        x = np.array([  lepton_1.e,
+                        lepton_1.px,
+                        lepton_1.py,
+                        lepton_1.pz,
+                        lepton_2.e,
+                        lepton_2.px,
+                        lepton_2.py,
+                        lepton_2.pz,
+                        met.px,
+                        met.py,
+                        met_resx,
+                        met_resy
+                        ])
+        X[i,:] = x
+        svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
+        l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
+        L[i,:] = l
+        #m = np.array([0, met.px, met.py, 0])
+        #M[line,:] = m
+        #phys_M[line,:] = np.array([met.pt, 0, met.phi, 0])
 
-    scaled_Y = model.predict(X)
+        gen[i,:] = np.array([gen_boson.pt, gen_boson.eta, gen_boson.phi, gen_boson.m()])
+        #gen_phys[line,:] = np.array([gen_boson.e, gen_boson.px, gen_boson.py, gen_boson.pz])
+
+       # d_svfit = FourMomentum(0, s.px - gen_boson.px, s.py - gen_boson.py, s.pz - gen_boson.pz)
+       # diff_svfit[line,:] = np.array([d_svfit.pt, d_svfit.eta, d_svfit.phi, s.m() - gen_boson.m()])
+
+        
+#line +=1
+
+
+
+
+    scaled_Y = predict(model_path, X, 'tt')
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
@@ -121,6 +143,7 @@ for index, process in enumerate(processes):
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
     # fake met / vgl mit cov matrix
+    """
     for a in [0,1]:
         pts = plt.figure()
         irange = None
@@ -131,7 +154,7 @@ for index, process in enumerate(processes):
         plt.savefig(os.path.join(outpath, process+"-fakemet"+str(a)+".png"))
         print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
         print process, " met cov: ", np.mean(met_unc[:,a]), ' median', np.median(met_unc[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
-
+    """
 
     for a in range(regressed_physfourvectors.shape[1]):
         fig = plt.figure(figsize=(5,5))
@@ -220,8 +243,8 @@ for index, process in enumerate(processes):
 ##        plt.close()
 
 # tau mass
-    tau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, scaled_Y)
-    tau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, scaled_Y)
+    tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
+    tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
 #    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
 #    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, Y)
 

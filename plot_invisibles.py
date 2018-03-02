@@ -89,7 +89,8 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         tau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, scaled_Y)
         gentau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, Y)
 
-    for a in range(13,21,1):
+    #for a in range(13,21,1):
+    for a in range(21):
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
         arange = [-400,400]
@@ -193,11 +194,11 @@ if __name__ == '__main__':
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
     f, ext = os.path.splitext(in_filenames[0])
-    if len(in_filenames) and ext == ".pkl":
-        X, Y, B, L = load_from_pickle(in_filenames[0])
-    else:
-        X, Y, B, L = load_from_root(in_filenames, channel, out_folder = out_folder)
-    X, Y = add_pu_target(X, Y, 0.,  0)
+    #if len(in_filenames) and ext == ".pkl":
+    #    X, Y, B, L = load_from_pickle(in_filenames[0])
+    #else:
+    X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
+    #X, Y = add_pu_target(X, Y, 0.,  0)
+    X, Y = add_pu_target(X, Y, 6., 24.)
     regressed_Y = predict(model_path, X, channel)
-#    X, Y = add_pu_target(X, Y, 6., 0.0, 24.)
     plot(regressed_Y, X, Y, B, L, channel, out_folder)

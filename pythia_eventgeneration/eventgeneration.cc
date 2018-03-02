@@ -18,12 +18,12 @@
 
 using namespace Pythia8;
 
-#define MIN_ELECTRON_PT 20
-#define MAX_ELECTRON_ETA 2.3
-#define MIN_MUON_PT 18
-#define MAX_MUON_ETA 2.3
-#define MIN_TAU_PT 20
-#define MAX_TAU_ETA 2.5
+#define MIN_ELECTRON_PT 15
+#define MAX_ELECTRON_ETA 3.0
+#define MIN_MUON_PT 15
+#define MAX_MUON_ETA 3.0
+#define MIN_TAU_PT 15
+#define MAX_TAU_ETA 3.0
 
 void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool inverted, int int_mass, std::string seed)
 {
@@ -45,7 +45,7 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
     pythia.readString("Beams:idB = 2212");
     pythia.readString("Beams:eCM = 13000.");
     pythia.readString("HiggsSM:gg2H = on");
-    pythia.readString("Main:numberOfEvents = 10000");
+    pythia.readString("Main:numberOfEvents = 2500");
     pythia.readString("Random:setSeed = true");
     pythia.readString("ProcessLevel:resonanceDecays = on");
     pythia.readString("PartonLevel:all = on");// if off, generation stops before parton level events (partons are quarks and gluons)

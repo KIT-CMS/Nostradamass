@@ -18,14 +18,14 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     import tensorflow as tf
     from keras.layers import GaussianNoise
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.95
+    config.gpu_options.per_process_gpu_memory_fraction = 0.45
     sess = tf.Session(config=config)
     set_session(sess)
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
-    #X, Y = add_pu_target(X, Y, 6., 24.)
+    X, Y = add_pu_target(X, Y, 6., 24.)
     print "adding pu target"
-    X, Y = add_pu_target(X, Y, 0., 0.)
+    #X, Y = add_pu_target(X, Y, 0., 0.)
 
     if channel == "tt":
         from losses import loss_fully_hadronic as loss
@@ -37,12 +37,12 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
  
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
         model.add(GaussianNoise(stddev=1.0))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
         model.compile(loss=loss, optimizer='Adamax')
     else:
@@ -51,7 +51,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 2000)
+    early_stopping = EarlyStopping(patience = 10)
 
     from sklearn.model_selection import train_test_split
 
@@ -67,8 +67,8 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                                             mode='auto',
                                             period=1)
         model.fit(tmp_X, Y_train,
-                    batch_size=50000,
-                    epochs=10,
+                    batch_size=20000,
+                    epochs=2000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]

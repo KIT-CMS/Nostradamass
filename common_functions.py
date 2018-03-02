@@ -20,27 +20,29 @@ def get_index(channel, n_neutrino):
             return "nt_1"
 
 def add_pu_target(X, Y, offset, loc):
-    print "Smearing MET"
-    starttime = time.time()
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+12])
     tmp_X = np.zeros([X.shape[0], X.shape[1]+2])
-    cov = offset * np.random.random_sample((X.shape[0],2)) + loc
     smear = np.zeros([X.shape[0], 2])
     
 
     for i in range(X.shape[1]):
         tmp_X[:,i] = X[:,i]
 
-    print "Smearing Loop"   
-    for i in range(cov.shape[0]):
-        if i%100000 == 1:
-            duration = time.time() - starttime
-            print "{:3.0f}".format(float(i)/tmp_Y.shape[0]*100), " %, ", \
-                 "{:4.1f}".format(duration), " seconds passed, ", \
-                 "{:8.2f}".format(i/duration), \
-                 " events/s; done in approx", "{:4.4f}".format((tmp_Y.shape[0]-i)/( i/duration)), " s"
-        smear[i,0] = np.random.normal(loc = 0.0, scale = cov[i,0])
-        smear[i,1] = np.random.normal(loc = 0.0, scale = cov[i,1])
+    if(offset == 0.):
+        cov = np.zeros([X.shape[0], 2])
+    else:
+        cov =  np.abs(np.random.normal(loc,offset,tmp_X.shape[0]*2).reshape(tmp_X.shape[0],2))
+        print "Smearing Loop"   
+        starttime = time.time()
+        for i in range(cov.shape[0]):
+            if i%1000000 == 1:
+                duration = time.time() - starttime
+                print "{:3.0f}".format(float(i)/tmp_Y.shape[0]*100), " %, ", \
+                     "{:4.1f}".format(duration), " seconds passed, ", \
+                     "{:8.2f}".format(float(i)/duration), \
+                     " events/s; done in approx", "{:4.4f}".format((tmp_Y.shape[0]-i)/( i/duration)), " s"
+            smear[i,0] = np.random.normal(loc = 0.0, scale = cov[i,0])
+            smear[i,1] = np.random.normal(loc = 0.0, scale = cov[i,1])
     tmp_X[:,10] = cov[:,0]
     tmp_X[:,11] = cov[:,1]
 
@@ -73,7 +75,6 @@ def load_from_root(in_filenames, channel, out_folder=None):
     print "loading tree from ", len(in_filenames), " files..."
     in_array = read_root(in_filenames, "tree", columns = branches).as_matrix()
 
-
     starttime = time.time()
     n_events = in_array.shape[0]
     print n_events, "loaded!"
@@ -86,16 +87,6 @@ def load_from_root(in_filenames, channel, out_folder=None):
     I2 = np.zeros([n_events, 4])
 
     dimrange = range(dims)
-
-#    print "Creating structured array..."
-#    for line_number, line in enumerate(r2numpy_array):
-#        if line_number % 100000 == 1:
-#            duration = time.time() - starttime
-#            print "{:3.0f}".format(float(line_number)/n_events*100), " %, ", \
-#                 "{:4.1f}".format(duration), " seconds passed, ", \
-#                 "{:8.2f}".format(line_number/duration), \
-#                 " events/s; done in approx", "{:4.4f}".format((n_events-line_number)/( line_number/duration)), " s"
-#        in_array[line_number,:] = [line[i] for i in dimrange]
   
 
     boson, lepton_1, lepton_2, tau1tn, tau1ln, tau2tn, tau2ln = [range(i*4,i*4+4) for i in range(7)]
@@ -126,9 +117,8 @@ def load_from_root(in_filenames, channel, out_folder=None):
     else:
         for i in range(4):
             I2[:,i] = in_array[:,tau2tn[i]]+in_array[:,tau2ln[i]]
-    print "MET"
-    X[:,8] = I1[:,0] + I2[:,0]
-    X[:,9] = I1[:,1] + I2[:,1]
+    X[:,8] = I1[:,1] + I2[:,1]
+    X[:,9] = I1[:,2] + I2[:,2]
 
     for i in range(4):
         Y[:,i+1] = I1[:,i]
