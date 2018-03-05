@@ -37,10 +37,11 @@ masses_sv = [105, 205, 305, 405, 505, 605]
 
 
 
-channel = r'$\tau_{had} \tau_{had}$'
+channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$'}
 binning = [50, 50, 50, 50, 50, 50, 100, 100]
-model_path = sys.argv[1]
-outpath = sys.argv[2]
+channel = sys.argv[1]
+model_path = sys.argv[2]
+outpath = sys.argv[3]
 if not os.path.exists(outpath):
     os.makedirs(outpath)
 
@@ -48,6 +49,8 @@ means_nn = [[],[], [], []]
 widths_nn = [[],[], [], []]
 means_sv = [[],[], [], []]
 widths_sv = [[],[], [], []]
+
+met_uncs = {}
 
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
@@ -61,7 +64,7 @@ for index, filename in enumerate(filenames):
             "m_2", "pt_2", "eta_2", "phi_2",
             "met", "metphi",
             "metcov00", "metcov11"]
-    in_array = read_root(os.path.join(folder,filename,filename+".root"), "tt_nominal/ntuple", columns = branches).as_matrix()
+    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches).as_matrix()
 
     dim = 12
     n_events = in_array.shape[0]
@@ -79,7 +82,7 @@ for index, filename in enumerate(filenames):
 
     fake_met_cart = np.zeros([n_events, 4])
     gen_met_phys = np.zeros([n_events, 4])
-    met_cov = np.zeros([n_events, 2])
+    #met_cov = np.zeros([n_events, 2])
     met_unc = np.zeros([n_events, 2])
 
     print in_array.size
@@ -92,7 +95,7 @@ for index, filename in enumerate(filenames):
         met = FourMomentum(0, a[16], 0, a[17], False)
 
 
-        met_cov[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
+        met_unc[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
         met_resx = np.sqrt(a[18])
         met_resy = np.sqrt(a[19])
 
@@ -130,7 +133,7 @@ for index, filename in enumerate(filenames):
 
 
 
-    scaled_Y = predict(model_path, X, 'tt')
+    scaled_Y = predict(model_path, X, channel)
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
@@ -142,19 +145,24 @@ for index, filename in enumerate(filenames):
                               svfit[i,2] - gen[i, 2],
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
-    # fake met / vgl mit cov matrix
-    """
-    for a in [0,1]:
+    met_uncs[process] = met_unc
+    # pt-dependency
+    for a in [0]:
+        pt = np.sqrt(np.square(L[:,1]) + np.square(L[:,2]))
+        unc = np.sqrt(np.square(met_unc[:,0]) + met_unc[:,1])
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+        print pt
+        print unc
         pts = plt.figure()
-        irange = None
-        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
-        n, bins, patches = plt.hist(met_unc[:,a], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="cov")
-        n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
-        plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, process+"-fakemet"+str(a)+".png"))
-        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
-        print process, " met cov: ", np.mean(met_unc[:,a]), ' median', np.median(met_unc[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
-    """
+        irange = [0,80]
+#        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
+        ax.hist2d(pt, unc, range = [[0, 500], [0, 150]] )
+ #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
+#        plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, process+"-metunc-over-pt.png"))
+#        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
+#        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
 
     for a in range(regressed_physfourvectors.shape[1]):
         fig = plt.figure(figsize=(5,5))
@@ -192,7 +200,7 @@ for index, filename in enumerate(filenames):
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("arb. units")
-        ax.set_title("Gen vs. reconstruction (" + channel + ", " + process + ")")
+        ax.set_title("Gen vs. reconstruction (" + channel_name[channel] + ", " + process + ")")
 
         plt.legend(loc='best')
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
@@ -293,3 +301,16 @@ for a in range(4):
     plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".png"))
     plt.tight_layout()
     plt.close()
+
+for k, v in met_uncs.iteritems():
+    # fake met / vgl mit cov matrix
+    for a in [0,1]:
+        pts = plt.figure()
+        irange = [0,80]
+#        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
+        n, bins, patches = plt.hist(v[:,a], 100, normed=1, alpha=0.5, range=irange, histtype='step', label=k)
+ #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
+        plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, "met_unc"+str(a)+".png"))
+#        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
+        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
