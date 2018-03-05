@@ -51,7 +51,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
-    early_stopping = EarlyStopping(patience = 10)
+    early_stopping = EarlyStopping(patience = 20)
 
     from sklearn.model_selection import train_test_split
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     if len(in_filenames) and ext == ".pkl":
         X, Y, B, L = load_from_pickle(in_filenames[0])
     else:
-        X, Y, B, L, = load_from_root(in_filenames, channel)#, out_folder = out_folder)
+        X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
 
     model = train_model(X, Y, out_folder=out_folder, channel = channel)
     model.summary()
