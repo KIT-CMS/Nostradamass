@@ -6,7 +6,9 @@ import numpy as np
 from common_functions import load_model
 from fourvector import FourMomentum
 from common_functions import get_index
+from common_functions import predict
 import hashlib
+import time
 
 # load the input file
 channel = 'tt'
@@ -20,6 +22,7 @@ branches=[
         "metcov00", "metcov11"]
 
 def calculate_arrays(l, args):
+        starttime = time.time()
         input_file = args[0]
         treename = args[1]
         foldername = args[2]
@@ -34,7 +37,6 @@ def calculate_arrays(l, args):
 
         X = np.zeros([arr.shape[0], len(branches)])
         L = np.zeros([arr.shape[0], 4])
-        model = load_model(model_path)
 
         # convert inputs to cartesian coordinates
         for index, a in enumerate(arr):
@@ -51,12 +53,12 @@ def calculate_arrays(l, args):
 
             visible = tau_1 + tau_2
             L[index,:] = visible.as_numpy_array()
-        Y = model.predict(X)
+    	Y = predict(model_path, X, channel)
         # convert Y to usual hadron-collider coordinates
 
         from common_functions import full_fourvector, transform_fourvector
 
-        fullvector_hc, fullvector_cartesian = full_fourvector(Y, L, vlen=3*n_neutrinos,
+        fullvector_hc, fullvector_cartesian = full_fourvector(Y, L,
                                                        cartesian_types = [("e_nn",np.float64),  ("px_nn", np.float64),  ("py_nn", np.float64),  ("pz_nn", np.float64)],
                                                        hc_types =        [("pt_nn",np.float64), ("eta_nn", np.float64), ("phi_nn", np.float64), ("m_nn", np.float64)])
 
@@ -86,12 +88,16 @@ def calculate_arrays(l, args):
         f.Write()
         f.Close()
         l.release()
+        runtime = time.time() - starttime
+        t = open(str('logs/'+str(os.getpid())), 'a')
+        t.write(str(runtime)+"; " + str(arr.shape[0])+'\n')
+        t.close()
         print os.getpid(), ": lock released by process "
 
 def get_output_filename(input_file):
     #return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
     filename = os.path.basename(input_file)
-    dirname = os.path.join("/storage/b/friese/m_nn/Artus_2017-12-02/tt_1/", os.path.dirname(input_file).split("/")[-1], filename)
+    dirname = os.path.join("/storage/b/friese/m_nn/Artus_2017-12-02/all_1/", os.path.dirname(input_file).split("/")[-1], filename)
     return dirname 
 
 from multiprocessing import Pool, Manager
@@ -125,7 +131,7 @@ if __name__ == '__main__':
     pprint.pprint(args)
 #    sys.exit()
     # todo: do not write friend trees but modify the original ones with the new entries
-    pool = Pool(processes=2)
+    pool = Pool(processes=3)
     m = Manager()
     l = m.Lock()
     func = partial(calculate_arrays, l)

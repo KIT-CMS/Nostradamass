@@ -12,7 +12,7 @@ from common_functions import full_fourvector
 from common_functions import predict
 from common_functions import original_tauh, original_taul
 from plot_invisibles import colors
-
+import time
 
 filenames = ["GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
             "SUSYGluGluToHToTauTauM100_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
@@ -56,6 +56,8 @@ def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
 
 for index, filename in enumerate(filenames):
+    runtime = 0
+    all_events = 0
     from root_pandas import read_root
     process = new_filenames[index]
     branches = ["genBosonMass", "genBosonPt", "genBosonEta", "genBosonPhi",
@@ -132,8 +134,10 @@ for index, filename in enumerate(filenames):
 
 
 
-
+    all_events += X.shape[0]
+    tmp_time = time.time()
     scaled_Y = predict(model_path, X, channel)
+    runtime = runtime + time.time() - tmp_time
     regressed_physfourvectors, regressed_fourvectors = full_fourvector(scaled_Y, L)
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
@@ -147,50 +151,50 @@ for index, filename in enumerate(filenames):
 
     met_uncs[process] = met_unc
     # pt-dependency
-    for a in [0]:
-        pt = np.sqrt(np.square(L[:,1]) + np.square(L[:,2]))
-        unc = np.sqrt(np.square(met_unc[:,0]) + met_unc[:,1])
-        fig = plt.figure(figsize=(5,5))
-        ax = fig.add_subplot(111)
-        print pt
-        print unc
-        pts = plt.figure()
-        irange = [0,80]
-#        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
-        ax.hist2d(pt, unc, range = [[0, 500], [0, 150]] )
- #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
-#        plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, process+"-metunc-over-pt.png"))
-#        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
-#        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
+#    for a in [0]:
+#        pt = np.sqrt(np.square(L[:,1]) + np.square(L[:,2]))
+#        unc = np.sqrt(np.square(met_unc[:,0]) + met_unc[:,1])
+#        fig = plt.figure(figsize=(4,4))
+#        ax = fig.add_subplot(111)
+#        print pt
+#        print unc
+#        pts = plt.figure()
+#        irange = [0,80]
+##        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
+#        ax.hist2d(pt, unc, range = [[0, 500], [0, 150]] )
+# #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
+##        plt.legend(loc='best')
+#        plt.savefig(os.path.join(outpath, process+"-metunc-over-pt.pdf"))
+##        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
+##        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
 
     for a in range(regressed_physfourvectors.shape[1]):
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(3,3))
         ax = fig.add_subplot(111)
         ranges = [[0,500],
-            [-8,8],
+            [-6,10],
             [-4,4],
             [0,600]]
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
-        n, bins, patches = plt.hist(gen[:,a], bins=binning[index], normed=1, color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
-        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
-        n, bins, patches = plt.hist(svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+        n, bins, patches = plt.hist(gen[:,a], bins=binning[index], color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
+        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+        n, bins, patches = plt.hist(svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
 #        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
 #        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
         #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
 
         if a == 0:
-            ax.text(0.7, 0.75, r'$\sigma(p_T^{true}, p_T^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.75, 0.7, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.4, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-            ax.text(0.7, 0.6, r'$\sigma(p_T^{true}, p_T^{SVFit})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.75, 0.55, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.6, 0.3, r'$\sigma(p_T^{true}, p_T^{SV})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.2, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
         if a == 3:
-            ax.text(0.6, 0.6, r'$\sigma / \Delta (m^{true}, m^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.55, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:10.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.6, 0.4, r'$\sigma / \Delta (m^{true}, m^{SVFit})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.35, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:10.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.6, 0.5, r'$\sigma / \Delta (m^{true}, m^{m})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.4, "{:3.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
         if index < 6:
             means_nn[a].append(np.mean(diff_nn[:,a]))
@@ -199,12 +203,12 @@ for index, filename in enumerate(filenames):
             widths_sv[a].append(np.std(diff_svfit[:,a]))
 
         ax.set_xlabel(titles[a])
-        ax.set_ylabel("arb. units")
-        ax.set_title("Gen vs. reconstruction (" + channel_name[channel] + ", " + process + ")")
+        ax.set_ylabel("# events")
+        ax.set_title("Di-$\\tau$ system (" + channel_name[channel] + ", " + process + ")")
 
         plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
         plt.tight_layout()
+        plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".pdf"))
         plt.close()
 
 
@@ -218,7 +222,7 @@ for index, filename in enumerate(filenames):
 #        n, bins, patches = plt.hist(diff_nn[:,a], 150, normed=1, facecolor='red', alpha=0.75, range=irange)
 #        n, bins, patches = plt.hist(diff_svfit[:,a], 150, normed=1, facecolor='blue', alpha=0.75, range=irange)
 #        #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
-#        plt.savefig("plots_apply/"+process+"-diff"+str(a)+".png")
+#        plt.savefig("plots_apply/"+process+"-diff"+str(a)+".pdf")
 
 
 #    for a in range(4):
@@ -231,7 +235,7 @@ for index, filename in enumerate(filenames):
 #        pts = plt.figure()
 #        n, bins, patches = plt.hist(regressed_fourvectors[:,a], 150, normed=1, facecolor='red', alpha=0.75)
         #n, bins, patches = plt.hist(target_physfourvectors[:,a], 150, normed=1, facecolor='green', alpha=0.75)
-#        plt.savefig("plots_apply/"+process+"-cartesian"+str(a)+".png")
+#        plt.savefig("plots_apply/"+process+"-cartesian"+str(a)+".pdf")
 ##    for a in [6]:
 ##        fig = plt.figure(figsize=(5,5))
 ##        ax = fig.add_subplot(111)
@@ -247,70 +251,113 @@ for index, filename in enumerate(filenames):
 ##        ax.set_title("Regression target vs. Result (" + channel + ")")
 ##        plt.legend()
 ##        plt.tight_layout()
-##        plt.savefig(os.path.join(outpath, process+"-target-vs-regressed"+str(a)+".png"))
+##        plt.savefig(os.path.join(outpath, process+"-target-vs-regressed"+str(a)+".pdf"))
 ##        plt.close()
 
 # tau mass
-    tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
-    tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
-#    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 0, 1, 2, X, Y)
-#    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 3, 4, 5, X, Y)
-
-    for a in range(4):
-        fig = plt.figure(figsize=(5,5))
-        ax = fig.add_subplot(111)
-#        arange = [-0,700]
-        arange = None
-        if a == 3:
-            arange = [-2, 20]
-    
-        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
-        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
-#        n, bins, patches = plt.hist(gen[:,3], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
-#        print "mass target ", a , " resolution: ", np.std(scaled_Y[:,a] - gen[:,3])
-#        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - gen[:,3]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        if a == 3:
-            ax.set_xlabel("mass  (GeV)")
-            ax.set_ylabel("arb. units")
-        ax.set_title("Tau property (" + channel + ")")
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(os.path.join(outpath, process+"-taumass"+str(a)+".png"))
-        plt.close()
+#    tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
+#    tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
+#
+#    for a in range(4):
+#        fig = plt.figure(figsize=(5,5))
+#        ax = fig.add_subplot(111)
+#        arange = None
+#        if a == 3:
+#            arange = [-2, 20]
+#    
+#        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed tau1')
+#        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="blue", histtype='step', range = arange, label='regressed tau2')
+#        if a == 3:
+#            ax.set_xlabel("mass  (GeV)")
+#            ax.set_ylabel("arb. units")
+#        ax.set_title("Tau property (" + channel + ")")
+#        plt.legend()
+#        plt.tight_layout()
+#        plt.savefig(os.path.join(outpath, process+"-taumass"+str(a)+".pdf"))
+#        plt.close()
 
 
-
+    print "runtime", runtime
+    print "events", all_events
+    print "events/s", all_events/float(runtime)
 
 for a in range(4):
-    fig = plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(3,3))
     ax = fig.add_subplot(111)
     ranges = [[0,500],
         [-8,8],
         [-4,4],
         [0,600]]
-    titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
-    ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Regressed")
+    yranges = [[-60,30],
+        [-1.5,0.8],
+        [-4,2],
+        [-150,80]]
+    titles = [ r'Reconstructed $p_T$ (GeV)', r'Reconstructed $\eta$',r' Reconstructed $\phi$',r'Reconstructed mass $m$ (GeV)',]
+    ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
     ax.errorbar(masses_sv, means_sv[a], yerr=widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
 
-    ax.set_xlabel(r'$m$ (GeV)')
+    ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
     ax.set_ylabel(titles[a])
-    ax.set_title("Resolution (" + channel + ")")
+    ax.set_title("Resolution (" + channel_name[channel] + ")")
+    ax.set_ylim(yranges[a])
 
-    plt.legend(loc='best')
-    plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".png"))
+    plt.legend(loc=3)
     plt.tight_layout()
+    plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".pdf"))
     plt.close()
+
+
+
+factors_nn = np.array(masses) / (np.array(masses)+np.array(means_nn))
+factors_sv = np.array(masses) / (np.array(masses)+np.array(means_sv))
+
+mod_means_nn = (factors_nn *  (np.array(masses)+np.array(means_nn))) - np.array(masses)
+mod_means_sv = (factors_sv *  (np.array(masses)+np.array(means_sv))) - np.array(masses)
+
+mod_widths_nn = factors_nn * np.array(widths_nn)
+mod_widths_sv = factors_sv * np.array(widths_sv)
+
+print 'Nostradamass', mod_widths_nn
+print 'SVFit', mod_widths_sv
+
+print 'diff', mod_widths_sv / mod_widths_nn
+
+for a in [3]:
+    fig = plt.figure(figsize=(3,3))
+    ax = fig.add_subplot(111)
+    ranges = [[0,500],
+        [-8,8],
+        [-4,4],
+        [0,600]]
+    yranges = [[-60,30],
+        [-1.5,0.8],
+        [-4,2],
+        [-150,100]]
+    titles = [ r'Reconstructed $p_T$ (GeV)', r'Reconstructed $\eta$',r' Reconstructed $\phi$',r'Reconstructed mass $m$ (GeV)',]
+    ax.errorbar(masses, mod_means_nn[a], yerr=mod_widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
+    ax.errorbar(masses_sv, mod_means_sv[a], yerr=mod_widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
+
+    ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
+    ax.set_ylabel(titles[a])
+    ax.set_title("Corrected Res. (" + channel_name[channel] + ")")
+    ax.set_ylim(yranges[a])
+
+    plt.legend(loc=3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
+    plt.close()
+
 
 for k, v in met_uncs.iteritems():
     # fake met / vgl mit cov matrix
     for a in [0,1]:
-        pts = plt.figure()
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
         irange = [0,80]
 #        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
         n, bins, patches = plt.hist(v[:,a], 100, normed=1, alpha=0.5, range=irange, histtype='step', label=k)
  #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
         plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, "met_unc"+str(a)+".png"))
+        plt.savefig(os.path.join(outpath, "met_unc"+str(a)+".pdf"))
 #        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
         print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])

@@ -28,9 +28,9 @@ colors = {
 
 def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
 
-    channels = { "tt": r'$\tau_{had} \tau_{had}$',
-                 "mt": r'$\mu \tau_{had}$', 
-                 "et": r'$e \tau_{had}$', 
+    channels = { "tt": r'$\tau_{h} \tau_{h}$',
+                 "mt": r'$\mu \tau_{h}$', 
+                 "et": r'$e \tau_{h}$', 
                  "em": r'$e \mu$', 
                  "ee": r'$ee$', 
                  "mm": r'$\mu\mu$'}
@@ -91,25 +91,30 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
 
     #for a in range(13,21,1):
     for a in range(21):
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(3,3))
         ax = fig.add_subplot(111)
-        arange = [-400,400]
-        if a == 13 or a == 17:
-            arange = [-5,600]
+        if channel == "tt":
+            arange = [-200,600]
+            if a == 13 or a == 17:
+                arange = [-5,600]
+        if channel == "em":
+            arange = [-250,1000]
+            if a == 13 or a == 17:
+                arange = [-5,800]
 
-        n, bins, patches = plt.hist(Y[:,a], 150, normed=1, color=colors["color_true"], histtype='step', range = arange, label='target')
-        n, bins, patches = plt.hist(scaled_Y[:,a], 150, normed=1, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
+        n, bins, patches = plt.hist(Y[:,a], 50, color=colors["color_true"], histtype='step', range = arange, label='target')
+        n, bins, patches = plt.hist(scaled_Y[:,a], 50, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
 
         print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - Y[:,a])
-        ax.text(0.2, 0.93, r'$\sigma(p_x^{true}, p_x^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.text(0.25, 0.88, str(np.std(scaled_Y[:,a] - Y[:,a]))[0:4] + " GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.set_xlabel(title[a] + "   (GeV)")
-        ax.set_ylabel("arb. units")
-        ax.set_title("Regression target vs. Result (" + channels[channel] + ")")
+        ax.text(0.65, 0.6, r'$\sigma(target, reg.)$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        ax.text(0.7, 0.45, str(np.std(scaled_Y[:,a] - Y[:,a]))[0:4] + " GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        ax.set_xlabel(title[a] + "   (GeV)", fontsize=15)
+        ax.set_ylabel("# events")
+        ax.set_title("Target vs. Regressed (" + channels[channel] + ")")
 
         plt.legend()
         plt.tight_layout()
-        plt.savefig(os.path.join(out_folder, "target-vs-regressed"+str(a)+".png"))
+        plt.savefig(os.path.join(out_folder, "target-vs-regressed"+str(a)+".pdf"))
         plt.close()
 
     # transform to plottable systems
@@ -121,35 +126,38 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
     diff_fourvectors = regressed_fourvectors-target_fourvectors
     diff_physfourvectors = regressed_physfourvectors-target_physfourvectors
     for a in range(regressed_physfourvectors.shape[1]):
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(3,3))
         ax = fig.add_subplot(111)
         ranges = [[0,500],
             [-8,8],
             [-4,4],
             [0,1200]]
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
-        n, bins, patches = plt.hist(target_physfourvectors[:,a], 100, normed=1, color='green', alpha=0.75, range=ranges[a], histtype='step', label='target')
-        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 100, normed=1, color='red', alpha=0.75, range=ranges[a], histtype='step', label='regressed')
-        n, bins, patches = plt.hist(vis_physfourvectors[:,a], 100, normed=1, color='orange', alpha=0.5, range=ranges[a], histtype='step', label='visible', linestyle='dotted')
+        n, bins, patches = plt.hist(target_physfourvectors[:,a], 50, color='green', range=ranges[a], histtype='step', label='target')
+        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 50, color='red', range=ranges[a], histtype='step', label='regressed')
+        n, bins, patches = plt.hist(vis_physfourvectors[:,a], 50, color='orange', range=ranges[a], histtype='step', label='visible', linestyle='dotted')
         print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
         if a == 0:
-            ax.text(0.6, 0.6, r'$\sigma(p_T^{true}, p_T^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.55, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.7, 0.5, r'$\sigma(p_T^{true}, p_T^{reg.})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
         if a == 3:
-            ax.text(0.2, 0.6, r'$\sigma(m^{true}, m^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.25, 0.55, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.7, 0.5, r'$\sigma(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-            ax.text(0.2, 0.45, r'$\Delta(m^{true}, m^{regressed})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.25, 0.40, str(np.mean(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
+            ax.text(0.7, 0.3, r'$\Delta(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+            ax.text(0.7, 0.2, str(np.mean(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        if a == 3:
+            ax.ticklabel_format(style="sci", axis='y', scilimits=(0,0))
+        if a == 1:
+            ax.set_ylim(top=1750)
+        ax.set_title("$\\tau\\tau$ system (" + channels[channel] + ")")
         ax.set_xlabel(titles[a])
-        ax.set_ylabel("arb. units")
-        ax.set_title("Gen vs. regressed system (" + channels[channel] + ")")
+        ax.set_ylabel("# events")
 
         plt.legend(loc='best')
-        plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".png"))
         plt.tight_layout()
+        plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".pdf"))
         plt.close()
 # tau mass
 
@@ -171,7 +179,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         ax.set_title("Tau mass (" + channels[channel] + ")")
         plt.legend()
         plt.tight_layout()
-        plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".png"))
+        plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".pdf"))
         plt.close()
 
     # compare gen met and regressed met
@@ -199,6 +207,6 @@ if __name__ == '__main__':
     #else:
     X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
     #X, Y = add_pu_target(X, Y, 0.,  0)
-    X, Y = add_pu_target(X, Y, 6., 24.)
+    X, Y = add_pu_target(X, Y, 7., 23.)
     regressed_Y = predict(model_path, X, channel)
     plot(regressed_Y, X, Y, B, L, channel, out_folder)

@@ -23,7 +23,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     set_session(sess)
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
-    X, Y = add_pu_target(X, Y, 6., 24.)
+    X, Y = add_pu_target(X, Y, 7., 23.)
     print "adding pu target"
     #X, Y = add_pu_target(X, Y, 0., 0.)
 

@@ -21,8 +21,9 @@ def main():
     # build list of arguments: 1,2,3,4,5
     arguments = []
     #for masses in range(40,1000):
-    for masses in range(40,1000):# range(40,1000):
-        for seed in [1]:
+    #for masses in range(1000,2000):# range(40,1000):
+    for masses in range(40,1000):
+        for seed in [3]:
             for channel in ["tt", "mt", "et", "em", "mm", "ee"]:
                 for invert in ["true", "false"]:
                     arguments.append(" ".join([str(x) for x in [masses, seed, channel, invert, out_dir]]))
