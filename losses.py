@@ -36,6 +36,10 @@ def loss_fully_hadronic(y_true, y_pred):
          (K.square(y_pred[:,i_inv2_py] - y_true[:,i_inv2_py])/gen_mass) + \
          (K.square(y_pred[:,i_smear_py] - y_true[:,i_smear_py])/gen_mass)
 
+    dz = (K.square(y_pred[:,i_inv1_py] - y_true[:,i_inv1_py])/gen_mass) + \
+         (K.square(y_pred[:,i_inv2_py] - y_true[:,i_inv2_py])/gen_mass) + \
+         (K.square(y_pred[:,i_smear_py] - y_true[:,i_smear_py])/gen_mass)
+
     dmet_x = (K.square((y_pred[:,i_inv1_px] + y_pred[:,i_inv2_px] + y_pred[:,i_smear_px]) - y_true[:,i_smeared_met_px]) / gen_mass)
     dmet_y = (K.square((y_pred[:,i_inv1_py] + y_pred[:,i_inv2_py] + y_pred[:,i_smear_py]) - y_true[:,i_smeared_met_py]) / gen_mass)
 
@@ -55,7 +59,7 @@ def loss_fully_hadronic(y_true, y_pred):
                          K.square(y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz])) -
                        mtau_squared)/gen_mass)
 
-    return K.mean(dm_tau_1 + dm_tau_2 + dx + dy + dmet_x + dmet_y)
+    return K.mean(dm_tau_1 + dm_tau_2 + dx + dy + dz + dmet_x + dmet_y)
 
 def loss_semi_leptonic(y_true, y_pred):
     gen_mass = K.square(y_true[:,i_gen_mass])
