@@ -1,6 +1,7 @@
 # mode to run on. Choose either "friend" to crate files called just like the input files with the ending ".friend.root" or "update" to modify the input files
 mode: friend
 full output: True
+n_processes: 24
 
 output_folder: /storage/b/friese/m_nn/Artus_2017-12-02/all_2/
 

@@ -29,9 +29,11 @@ def calculate_arrays(l, args):
         output_file = args[3]
         model_path = args[4]
         full_output = args[5]
-        print os.getpid(), " file", os.path.basename(output_file)
-
-        arr = root2array(input_file, foldername+"/"+treename, branches = branches)
+        try:
+            arr = root2array(input_file, foldername+"/"+treename, branches = branches)
+        except:
+            # The input file has not been found or the tree size is 0
+            return
 
         # pre-allocate the input vector to Keras
 
@@ -75,7 +77,7 @@ def calculate_arrays(l, args):
                 outputs.append(neutrino_hc)
                 outputs.append(neutrino_cartesian)
         l.acquire()
-        print os.getpid(), ":lock hold by process creating", output_file
+        print os.getpid(), ": lock hold by process creating", output_file
 
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
@@ -95,7 +97,6 @@ def calculate_arrays(l, args):
         print os.getpid(), ": lock released by process "
 
 def get_output_filename(input_file, output_folder):
-    #return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
     filename = os.path.basename(input_file)
     dirname = os.path.join(output_folder, os.path.dirname(input_file).split("/")[-1], filename)
     return dirname 
@@ -117,6 +118,7 @@ if __name__ == '__main__':
     files = data_loaded["files"]
     full_output = data_loaded["full output"]
     output_folder = data_loaded["output_folder"]
+    n_processes = data_loaded["n_processes"]
 
     args = []
     for f in files:
@@ -131,8 +133,10 @@ if __name__ == '__main__':
             args.append([f, treename, foldername, output_filename, model_path, full_output])
     pprint.pprint(args)
     # todo: do not write friend trees but modify the original ones with the new entries
-    pool = Pool(processes=24)
+    pool = Pool(processes=n_processes)
     m = Manager()
     l = m.Lock()
     func = partial(calculate_arrays, l)
-    pool.map(func, args)
+    results = pool.map(func, args)
+    pool.join()
+    print results
