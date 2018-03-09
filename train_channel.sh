@@ -5,7 +5,7 @@ export CUDA_VISIBLE_DEVICES=$2
 
 channel=$1
 #dir="trainings/neutrinos_68_noPU"
-dir="trainings/neutrinos_74_400_300_200_100_PU_24_7_dz"
+dir="trainings/neutrinos_75_400_300_200_100_PU_24_7_Nodz"
 #input="/storage/b/friese/toymass5/m_*_${channel}_*.root /storage/b/friese/toymass6/m_*_${channel}_*.root"
 input="/storage/b/friese/toymass7/m_*_${channel}_*.root"
 #input="/storage/b/friese/toymass5/m_2*_${channel}_*.root"

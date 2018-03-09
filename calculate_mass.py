@@ -94,10 +94,10 @@ def calculate_arrays(l, args):
         t.close()
         print os.getpid(), ": lock released by process "
 
-def get_output_filename(input_file):
+def get_output_filename(input_file, output_folder):
     #return os.path.join(os.path.dirname(input_file), os.path.basename(input_file).replace(".root", "-m_nn.root"))
     filename = os.path.basename(input_file)
-    dirname = os.path.join("/storage/b/friese/m_nn/Artus_2017-12-02/all_1/", os.path.dirname(input_file).split("/")[-1], filename)
+    dirname = os.path.join(output_folder, os.path.dirname(input_file).split("/")[-1], filename)
     return dirname 
 
 from multiprocessing import Pool, Manager
@@ -116,6 +116,7 @@ if __name__ == '__main__':
     models = data_loaded["models"]
     files = data_loaded["files"]
     full_output = data_loaded["full output"]
+    output_folder = data_loaded["output_folder"]
 
     args = []
     for f in files:
@@ -126,12 +127,11 @@ if __name__ == '__main__':
             else:
                 continue
             foldername, treename = tree.split("/")
-            output_filename = get_output_filename(f)
+            output_filename = get_output_filename(f, output_folder)
             args.append([f, treename, foldername, output_filename, model_path, full_output])
     pprint.pprint(args)
-#    sys.exit()
     # todo: do not write friend trees but modify the original ones with the new entries
-    pool = Pool(processes=3)
+    pool = Pool(processes=24)
     m = Manager()
     l = m.Lock()
     func = partial(calculate_arrays, l)

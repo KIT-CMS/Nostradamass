@@ -50,6 +50,8 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     model.summary()
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
+    from keras.callbacks import TensorBoard
+    tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
     early_stopping = EarlyStopping(patience = 20)
 
     from sklearn.model_selection import train_test_split
@@ -69,7 +71,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                     batch_size=20000,
                     epochs=2000,
                     validation_data = (X_test, Y_test),
-                    callbacks = [model_checkpoint, early_stopping])
+                    callbacks = [model_checkpoint, early_stopping, tensorboard])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
     for f in files:
         os.remove(os.path.join(out_folder, f))
