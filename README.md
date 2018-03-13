@@ -1,7 +1,7 @@
 # Nostradamass
-## No-full sim DNN training derived approximation of mass 
+## Neutrino kinematics estimation by regression with artificial intelligence to reconstruct the di-tau mass
 
-Nostradamass is a full di-tau system reconstruction. It uses events generated with the Pythia 8 event generator as labled data for a deep neural network. It does not use any reconstruction-based quantities and is therefore not dependent on any experiment.
+Nostradamass is a full di-tau system reconstruction. It uses events generated with the Pythia 8 event generator as labled data for the training of a deep neural network. It does not use any reconstruction-based quantities and is therefore not dependent on any experiment.
 
 ## Getting Started
 
@@ -25,6 +25,8 @@ Edit setup_env.sh depending on the system you use.
 
 
 ## Generating simulated events
+
+This step is only necessary to produce new trainings. Skip this step in case you want to use existing trainings.
 
 Compilation requires gcc7. Earlier versions are not supported.
 
@@ -59,6 +61,9 @@ To run Nostradamass on a ROOT n-tuple, the following properties must be present:
 2. pt_2, eta_2, phi_2, m_2: The four-vector of the second visible decay products of the tau, flavour-sorted
 3. metcov00, metcov11: The diagonal elements of the MET covariance matrix
 
-Edit the file "config.yaml" or create a similar yaml file following your needs. The 'models' section specifies on which trees which models should be applied. List all your 'files' in the corresponding section.
+Edit the file "config.yaml" or create a similar yaml file following your needs. The 'models' section specifies on which trees which models should be applied. List all your 'files' in the corresponding section. Run the application with:
 ```
+python calculate_mass.py config.yaml
 ```
+
+The output folder will contain for each input root-file a new file containing a Tree that is a friend of the original Tree. Use the TTree::AddFriend() function to include the Nostradamass results to your original tree.
