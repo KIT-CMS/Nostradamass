@@ -1,17 +1,17 @@
 # mode to run on. Choose either "friend" to crate files called just like the input files with the ending ".friend.root" or "update" to modify the input files
 mode: friend
-full output: True
-n_processes: 24
+full output: False
+n_processes: 10
 
-output_folder: /storage/b/friese/m_nn/Artus_2017-12-02/all_2/
+output_folder: /storage/b/friese/m_nn/Artus_2017-12-02/all_4/
 
 # specify which training to apply on which tree
 models:
-    tt_nominal/ntuple: /storage/b/friese/trainings/neutrinos_71_5x300_PU/tt/model.0.0055-0.02.hdf5
-    et_nominal/ntuple: /storage/b/friese/trainings/neutrinos_71_5x300_PU/et/model.0.0042-0.07.hdf5
-    mt_nominal/ntuple: /storage/b/friese/trainings/neutrinos_71_5x300_PU/mt/model.0.0058-0.07.hdf5
-    mm_nominal/ntuple: /storage/b/friese/trainings/neutrinos_71_5x300_PU/mm/model.0.0077-0.15.hdf5
-    em_nominal/ntuple: /storage/b/friese/trainings/neutrinos_71_5x300_PU/em/model.0.0083-0.15.hdf5
+    tt_nominal/ntuple: ['tt', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/tt/model.0.0060-0.02.hdf5]
+    et_nominal/ntuple: ['et', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/et/model.0.0113-0.10.hdf5]
+    mt_nominal/ntuple: ['mt', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/mt/model.0.0093-0.10.hdf5]
+    mm_nominal/ntuple: ['mm', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/mm/model.0.0093-0.25.hdf5]
+    em_nominal/ntuple: ['em', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/em/model.0.0082-0.25.hdf5]
 
 # input files
 files:
@@ -38,20 +38,6 @@ files:
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/DYJetsToLLM10to50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8/DYJetsToLLM10to50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/DYJetsToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/DYJetsToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/DYJetsToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2/DYJetsToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016B_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016B_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016B_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016B_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016C_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016C_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016C_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016C_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016D_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016D_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016D_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016D_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016E_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016E_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016E_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016E_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016F_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016F_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016F_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016F_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016G_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016G_ElTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016G_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER/Embedding2016G_MuTauFinalState_imputSep16DoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016H_ElTauFinalState_imputPromptDoubleMumirrorminiAODv2_13TeV_USER/Embedding2016H_ElTauFinalState_imputPromptDoubleMumirrorminiAODv2_13TeV_USER.root
-- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/Embedding2016H_MuTauFinalState_imputPromptDoubleMumirrorminiAODv2_13TeV_USER/Embedding2016H_MuTauFinalState_imputPromptDoubleMumirrorminiAODv2_13TeV_USER.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2/EWKWMinus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2.root
@@ -59,14 +45,14 @@ files:
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKWPlus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/EWKWPlus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKWPlus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2/EWKWPlus2JetsWToLNuM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8.root
-#- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
+- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2/EWKZ2Jets_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext1.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2/EWKZ2JetsZToLLM50_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_madgraph-pythia8_ext2.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8/GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/GluGluHToWWTo2L2NuM120_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8/GluGluHToWWTo2L2NuM120_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8.root
-#- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/GluGluHToWWTo2L2NuM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8/GluGluHToWWTo2L2NuM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8.root
+- /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/GluGluHToWWTo2L2NuM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8/GluGluHToWWTo2L2NuM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/GluGluHToWWTo2L2NuM130_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8/GluGluHToWWTo2L2NuM130_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/MuonEG_Run2016B_03Feb2017ver2v2_13TeV_MINIAOD/MuonEG_Run2016B_03Feb2017ver2v2_13TeV_MINIAOD.root
 - /storage/c/swozniewski/SM_Htautau/ntuples/Artus_2017-12-02/merged/MuonEG_Run2016C_03Feb2017v1_13TeV_MINIAOD/MuonEG_Run2016C_03Feb2017v1_13TeV_MINIAOD.root

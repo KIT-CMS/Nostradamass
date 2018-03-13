@@ -105,9 +105,10 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         n, bins, patches = plt.hist(Y[:,a], 50, color=colors["color_true"], histtype='step', range = arange, label='target')
         n, bins, patches = plt.hist(scaled_Y[:,a], 50, color=colors["color_nn"], histtype='step', range = arange, label='regressed')
 
-        print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - Y[:,a])
-        ax.text(0.65, 0.6, r'$\sigma(target, reg.)$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-        ax.text(0.7, 0.45, str(np.std(scaled_Y[:,a] - Y[:,a]))[0:4] + " GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        #print "target ", a , " resolution: ", np.std(scaled_Y[:,a] - Y[:,a]), ", delta: ", np.mean(scaled_Y[:,a] - Y[:,a]v)
+        print title[a], " & ", "{:2.1f}".format(np.mean(scaled_Y[:,a] - Y[:,a])), " & ", "{:2.1f}".format(np.std(scaled_Y[:,a] - Y[:,a])), "\\\\"
+#        ax.text(0.65, 0.6, r'$\sigma(target, reg.)$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#        ax.text(0.7, 0.45, str(np.std(scaled_Y[:,a] - Y[:,a]))[0:4] + " GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
         ax.set_xlabel(title[a] + "   (GeV)", fontsize=15)
         ax.set_ylabel("# events")
         ax.set_title("Target vs. Regressed (" + channels[channel] + ")")
@@ -125,6 +126,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
     
     diff_fourvectors = regressed_fourvectors-target_fourvectors
     diff_physfourvectors = regressed_physfourvectors-target_physfourvectors
+    print '-=-=-=-=-=-=-=-=-'
     for a in range(regressed_physfourvectors.shape[1]):
         fig = plt.figure(figsize=(3,3))
         ax = fig.add_subplot(111)
@@ -136,17 +138,18 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         n, bins, patches = plt.hist(target_physfourvectors[:,a], 50, color='green', range=ranges[a], histtype='step', label='target')
         n, bins, patches = plt.hist(regressed_physfourvectors[:,a], 50, color='red', range=ranges[a], histtype='step', label='regressed')
         n, bins, patches = plt.hist(vis_physfourvectors[:,a], 50, color='orange', range=ranges[a], histtype='step', label='visible', linestyle='dotted')
-        print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
-        if a == 0:
-            ax.text(0.7, 0.5, r'$\sigma(p_T^{true}, p_T^{reg.})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
-        if a == 3:
-            ax.text(0.7, 0.5, r'$\sigma(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
-            ax.text(0.7, 0.3, r'$\Delta(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.7, 0.2, str(np.mean(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+        print titles[a], " & ", "{:2.2f}".format(np.mean(diff_physfourvectors[:,a])), " & ", "{:2.2f}".format(np.std(diff_physfourvectors[:,a])), "\\\\"
+#        print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
+#        if a == 0:
+#            ax.text(0.7, 0.5, r'$\sigma(p_T^{true}, p_T^{reg.})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#
+#        if a == 3:
+#            ax.text(0.7, 0.5, r'$\sigma(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.7, 0.4, str(np.std(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#
+#            ax.text(0.7, 0.3, r'$\Delta(m^{gen}, m^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.7, 0.2, str(np.mean(diff_physfourvectors[:,a]))[0:4] +" GeV", fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
         if a == 3:
             ax.ticklabel_format(style="sci", axis='y', scilimits=(0,0))
         if a == 1:

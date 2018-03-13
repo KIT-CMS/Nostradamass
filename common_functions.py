@@ -5,20 +5,6 @@ import pickle
 import os
 import time
 
-def get_index(channel, n_neutrino):
-    if channel == 'tt':
-        if n_neutrino == 0:
-            return "nt_1"
-        else:
-            return "nt_2"
-    elif channel == "mt" or channel == "et":
-        if n_neutrino == 0:
-            return "nt_1"
-        elif n_neutrino == 1:
-            return "nl_1"
-        else:
-            return "nt_1"
-
 def add_pu_target(X, Y, offset, loc):
     tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+12])
     tmp_X = np.zeros([X.shape[0], X.shape[1]+2])

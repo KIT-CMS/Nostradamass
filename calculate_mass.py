@@ -5,15 +5,11 @@ import numpy as np
 
 from common_functions import load_model
 from fourvector import FourMomentum
-from common_functions import get_index
 from common_functions import predict
 import hashlib
 import time
 
 # load the input file
-channel = 'tt'
-
-n_neutrinos = 2
 
 branches=[
         "m_1", "pt_1", "eta_1", "phi_1", 
@@ -29,6 +25,7 @@ def calculate_arrays(l, args):
         output_file = args[3]
         model_path = args[4]
         full_output = args[5]
+        channel = args[6]
         try:
             arr = root2array(input_file, foldername+"/"+treename, branches = branches)
         except:
@@ -66,22 +63,22 @@ def calculate_arrays(l, args):
 
         outputs = [fullvector_hc, fullvector_cartesian]
         if full_output:
-            for n_neutrino in range(n_neutrinos):
-                four_momenta = []
+            for i in range(2):
+                neutrino_four_momenta = []
                 for line in range(Y.shape[0]):
-                    four_momenta.append(FourMomentum(None, Y[line,0+n_neutrino], Y[line,1+n_neutrino], Y[line,2+n_neutrino], cartesian=True, massless=True))
-                s = "_" + get_index(channel, n_neutrino)
-                neutrino_hc, neutrino_cartesian = transform_fourvector(four_momenta,
+                    neutrino_four_momenta.append(FourMomentum(Y[line,13+4*i], Y[line,14+4*i], Y[line,15+4*i], Y[line,16+4*i], cartesian=True))
+                    s = "_n" + str(i+1) 
+                    neutrino_hc, neutrino_cartesian = transform_fourvector(neutrino_four_momenta,
                                                            cartesian_types = [("e"+s,np.float64),  ("px"+s, np.float64),  ("py"+s, np.float64),  ("pz"+s, np.float64)],
                                                            hc_types =        [("pt"+s,np.float64), ("eta"+s, np.float64), ("phi"+s, np.float64), ("m"+s, np.float64)])
-                outputs.append(neutrino_hc)
-                outputs.append(neutrino_cartesian)
+                    outputs.append(neutrino_hc)
+                    outputs.append(neutrino_cartesian)
         l.acquire()
-        print os.getpid(), ": lock hold by process creating", output_file
+        print os.getpid(), ": lock hold by process creating", output_file, " lock: ", l
 
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
-        f = TFile(output_file, "RECREATE")
+        f = TFile(output_file, "UPDATE")
         f.mkdir(foldername)
         getattr(f, foldername).cd()
         tree = None
@@ -114,7 +111,7 @@ if __name__ == '__main__':
         data_loaded = yaml.load(stream)
 
     import pprint
-    models = data_loaded["models"]
+    channels_models = data_loaded["models"]
     files = data_loaded["files"]
     full_output = data_loaded["full output"]
     output_folder = data_loaded["output_folder"]
@@ -124,19 +121,20 @@ if __name__ == '__main__':
     for f in files:
         trees = list_trees(f)
         for tree in trees:
-            if tree in models:
-                model_path = models[tree]
+            if tree in channels_models:
+                model_path = channels_models[tree][1]
+                channel = channels_models[tree][0]
             else:
                 continue
             foldername, treename = tree.split("/")
             output_filename = get_output_filename(f, output_folder)
-            args.append([f, treename, foldername, output_filename, model_path, full_output])
-    pprint.pprint(args)
+            args.append([f, treename, foldername, output_filename, model_path, full_output, channel])
+    #pprint.pprint(args)
     # todo: do not write friend trees but modify the original ones with the new entries
     pool = Pool(processes=n_processes)
     m = Manager()
     l = m.Lock()
     func = partial(calculate_arrays, l)
     results = pool.map(func, args)
+    pool.close()
     pool.join()
-    print results
