@@ -182,19 +182,21 @@ for index, filename in enumerate(filenames):
 #        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
 #        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
         #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
+        print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.std(diff_nn[:,a])), "\\\\"
+        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_svfit[:,a])), " & ", "{:2.2f}".format(np.std(diff_svfit[:,a])), "\\\\ \hine"
 
-        if a == 0:
-            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.4, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#        if a == 0:
+#            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.65, 0.4, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-            ax.text(0.6, 0.3, r'$\sigma(p_T^{true}, p_T^{SV})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.2, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
-        if a == 3:
-            ax.text(0.6, 0.5, r'$\sigma / \Delta (m^{true}, m^{m})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.4, "{:3.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.6, 0.3, r'$\sigma(p_T^{true}, p_T^{SV})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.65, 0.2, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#
+#        if a == 3:
+#            ax.text(0.6, 0.5, r'$\sigma / \Delta (m^{true}, m^{m})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.65, 0.4, "{:3.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+#            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
         if index < 6:
             means_nn[a].append(np.mean(diff_nn[:,a]))
