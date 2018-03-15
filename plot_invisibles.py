@@ -108,6 +108,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         plt.legend()
         plt.tight_layout()
         plt.savefig(os.path.join(out_folder, "target-vs-regressed"+str(a)+".pdf"))
+        plt.savefig(os.path.join(out_folder, "target-vs-regressed"+str(a)+".png"))
         plt.close()
 
     # transform to plottable systems
@@ -175,6 +176,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         plt.legend()
         plt.tight_layout()
         plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".pdf"))
+        plt.savefig(os.path.join(out_folder, "original-tau"+str(a)+".png"))
         plt.close()
 
     # compare gen met and regressed met
