@@ -17,7 +17,7 @@ import keras.backend as K
 from matplotlib.colors import LogNorm
 
 from common_functions import full_fourvector, transform_fourvector
-from common_functions import original_tauh, original_taul
+from common_functions import original_tau
 from common_functions import load_from_root, load_model, add_pu_target, load_from_pickle, predict
 
 colors = {
@@ -75,19 +75,11 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
     title = title + ["gen mass"] 
     title = title + list(itemgetter(*[8,9,10,11,12,13,14,15])(titles))
 
-    if channel[0] == 't':
-        tau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, scaled_Y)
-        gentau_1_orig_phys = original_tauh(0, 1, 2, 3, 14, 15, 16, X, Y)
-    else:
-        tau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, scaled_Y)
-        gentau_1_orig_phys = original_taul(0, 1, 2, 3, 13, 14, 15, 16, X, Y)
+    tau_1_orig_phys = original_tau(0, 1, 2, 3, 13, 14, 15, 16, X, scaled_Y)
+    gentau_1_orig_phys = original_tau(0, 1, 2, 3, 13, 14, 15, 16, X, Y)
 
-    if channel[1] == 't':
-        tau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, scaled_Y)
-        gentau_2_orig_phys = original_tauh(4, 5, 6, 7, 18, 19, 20, X, Y)
-    else:
-        tau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, scaled_Y)
-        gentau_2_orig_phys = original_taul(4, 5, 6, 7, 17, 18, 19, 20, X, Y)
+    tau_2_orig_phys = original_tau(4, 5, 6, 7, 17, 18, 19, 20, X, scaled_Y)
+    gentau_2_orig_phys = original_tau(4, 5, 6, 7, 17, 18, 19, 20, X, Y)
 
     #for a in range(13,21,1):
     for a in range(21):
@@ -97,7 +89,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
             arange = [-200,600]
             if a == 13 or a == 17:
                 arange = [-5,600]
-        if channel == "em":
+        if channel == "em" or channel =="mt" or channel=="et":
             arange = [-250,1000]
             if a == 13 or a == 17:
                 arange = [-5,800]

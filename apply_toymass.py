@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from common_functions import transform_fourvector
 from common_functions import full_fourvector
 from common_functions import predict
-from common_functions import original_tauh, original_taul
 from plot_invisibles import colors
 import time
 
@@ -51,6 +50,7 @@ means_sv = [[],[], [], []]
 widths_sv = [[],[], [], []]
 
 met_uncs = {}
+pts = {}
 
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
@@ -86,6 +86,7 @@ for index, filename in enumerate(filenames):
     gen_met_phys = np.zeros([n_events, 4])
     #met_cov = np.zeros([n_events, 2])
     met_unc = np.zeros([n_events, 2])
+    pt = np.zeros([n_events, 1])
 
     print in_array.size
     for i in range(n_events):
@@ -118,6 +119,7 @@ for index, filename in enumerate(filenames):
         X[i,:] = x
         svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
         l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
+        pt[i,:] = np.array([(lepton_1+lepton_2).pt])
         L[i,:] = l
         #m = np.array([0, met.px, met.py, 0])
         #M[line,:] = m
@@ -150,6 +152,7 @@ for index, filename in enumerate(filenames):
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
     met_uncs[process] = met_unc
+    pts[process] = pt
     # pt-dependency
 #    for a in [0]:
 #        pt = np.sqrt(np.square(L[:,1]) + np.square(L[:,2]))
@@ -167,7 +170,7 @@ for index, filename in enumerate(filenames):
 #        plt.savefig(os.path.join(outpath, process+"-metunc-over-pt.pdf"))
 ##        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
 ##        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
-
+    print process
     for a in range(regressed_physfourvectors.shape[1]):
         fig = plt.figure(figsize=(3,3))
         ax = fig.add_subplot(111)
@@ -357,9 +360,24 @@ for k, v in met_uncs.iteritems():
         ax = fig.add_subplot(111)
         irange = [0,80]
 #        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
+        pt10 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10) and (pts[k][i] > 0 ))]
+        pt30 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 30) and (pts[k][i] > 10 ))]
+        pt50 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 50) and (pts[k][i] > 30 ))]
+        pt100 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 100) and (pts[k][i] > 50 ))]
+        ptInf = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10000) and (pts[k][i] > 100 ))]
         n, bins, patches = plt.hist(v[:,a], 100, normed=1, alpha=0.5, range=irange, histtype='step', label=k)
+        n, bins, patches = plt.hist(pt10, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='10')
+        n, bins, patches = plt.hist(pt30, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='30')
+        n, bins, patches = plt.hist(pt50, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='50')
+        n, bins, patches = plt.hist(pt100, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='100')
+        n, bins, patches = plt.hist(ptInf, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='Inf')
  #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
         plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, "met_unc"+str(a)+".pdf"))
+        plt.savefig(os.path.join(outpath, "met_unc"+str(a)+'_'+str(k)+".png"))
 #        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
         print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
+        print process, " pt10 ", np.mean(pt10), ' median', np.median(pt10), ", toy resolution: ", np.std(pt10)
+        print process, " pt30 ", np.mean(pt30), ' median', np.median(pt30), ", toy resolution: ", np.std(pt30)
+        print process, " pt50 ", np.mean(pt50), ' median', np.median(pt50), ", toy resolution: ", np.std(pt50)
+        print process, " pt100 ", np.mean(pt100), ' median', np.median(pt100), ", toy resolution: ", np.std(pt100)
+        print process, " pt1000 ", np.mean(ptInf), ' median', np.median(ptInf), ", toy resolution: ", np.std(ptInf)

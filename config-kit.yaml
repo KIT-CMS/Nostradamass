@@ -3,15 +3,15 @@ mode: friend
 full output: False
 n_processes: 10
 
-output_folder: /storage/b/friese/m_nn/Artus_2017-12-02/all_4/
+output_folder: /storage/b/friese/m_nn/Artus_2017-12-02/mt_dmtauNosquareOnly1_v2_2/
 
 # specify which training to apply on which tree
 models:
-    tt_nominal/ntuple: ['tt', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/tt/model.0.0060-0.02.hdf5]
-    et_nominal/ntuple: ['et', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/et/model.0.0113-0.10.hdf5]
-    mt_nominal/ntuple: ['mt', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/mt/model.0.0093-0.10.hdf5]
-    mm_nominal/ntuple: ['mm', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/mm/model.0.0093-0.25.hdf5]
-    em_nominal/ntuple: ['em', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/em/model.0.0082-0.25.hdf5]
+#    tt_nominal/ntuple: ['tt', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/tt/model.0.0060-0.02.hdf5]
+#    et_nominal/ntuple: ['et', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/et/model.0.0113-0.10.hdf5]
+    mt_nominal/ntuple: ['mt', trainings/neutrinos_79_500_400_300_200_100_toymass7_PU_dmtauNosquareOnly1_v2/mt/model.0.0044-0.16.hdf5]
+#    mm_nominal/ntuple: ['mm', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/mm/model.0.0093-0.25.hdf5]
+#    em_nominal/ntuple: ['em', /storage/b/friese/trainings/neutrinos_76_500_400_300_200_100_PU/em/model.0.0082-0.25.hdf5]
 
 # input files
 files:

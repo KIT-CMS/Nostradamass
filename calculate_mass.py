@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from os import environ
+
+environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+environ["CUDA_VISIBLE_DEVICES"] ='2'
 from root_numpy import root2array, array2tree, array2root, list_trees
 from ROOT import TTree, TFile
 import numpy as np
