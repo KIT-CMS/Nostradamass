@@ -13,31 +13,108 @@ from common_functions import predict
 from plot_invisibles import colors
 import time
 
-filenames = ["GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
+filenames = [
+            "GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
+            "SUSYGluGluToHToTauTauM80_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM90_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM100_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM110_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM120_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM130_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM140_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM160_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM180_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM250_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM350_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM400_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM450_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM500_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM700_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM800_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM1000_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM1200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM1400_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM1600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM1800_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM2000_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM2300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM2600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM2900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
+            "SUSYGluGluToHToTauTauM3200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
-folder = "/storage/b/friese/htautau/artus/2018-01-23_13-20_analysis/workdir/se_output/merged/"
+folder = "/storage/b/friese/htautau/artus/2018-03-13_16-08_analysis/output/merged/"
 
-new_filenames = ["ggHSM",
-                "susy100",
-                "susy200",
-                "susy300",
-                "susy400",
-                "susy500",
-                "susy600",
-                "vbfSM"]
-masses = [100, 200, 300, 400, 500, 600]
-masses_sv = [105, 205, 305, 405, 505, 605]
+new_filenames = [
+            "GluGluH",
+            "SUSY80",
+            "SUSY90",
+            "SUSY100",
+            "SUSY110",
+            "SUSY120",
+            "SUSY130",
+            "SUSY140",
+            "SUSY160",
+            "SUSY180",
+            "SUSY200",
+            "SUSY250",
+            "SUSY350",
+            "SUSY400",
+            "SUSY450",
+            "SUSY500",
+            "SUSY600",
+            "SUSY700",
+            "SUSY800",
+            "SUSY900",
+            "SUSY1000",
+            "SUSY1200",
+            "SUSY1400",
+            "SUSY1600",
+            "SUSY1800",
+            "SUSY2000",
+            "SUSY2300",
+            "SUSY2600",
+            "SUSY2900",
+            "SUSY3200",
+            "VBFH"]
+masses = [  125,
+            80,
+            90,
+            100,
+            110,
+            120,
+            130,
+            140,
+            160,
+            180,
+            200,
+            250,
+            350,
+            400,
+            450,
+            500,
+            600,
+            700,
+            800,
+            900,
+            1000,
+            1200,
+            1400,
+            1600,
+            1800,
+            2000,
+            2300,
+            2600,
+            2900,
+            3200, 125]
+masses_sv = [a + 5 for a in masses]
 
 
 
 channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$'}
-binning = [50, 50, 50, 50, 50, 50, 100, 100]
+binning = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
 model_path = sys.argv[2]
 outpath = sys.argv[3]
@@ -177,7 +254,7 @@ for index, filename in enumerate(filenames):
         ranges = [[0,500],
             [-6,10],
             [-4,4],
-            [0,600]]
+            [0,masses[index]*3]]
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
         n, bins, patches = plt.hist(gen[:,a], bins=binning[index], color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
         n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
@@ -214,6 +291,7 @@ for index, filename in enumerate(filenames):
         plt.legend(loc='best')
         plt.tight_layout()
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".pdf"))
+        plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
         plt.close()
 
 
@@ -292,7 +370,7 @@ for a in range(4):
     ranges = [[0,500],
         [-8,8],
         [-4,4],
-        [0,600]]
+        [0,3300]]
     yranges = [[-60,30],
         [-1.5,0.8],
         [-4,2],
@@ -309,6 +387,7 @@ for a in range(4):
     plt.legend(loc=3)
     plt.tight_layout()
     plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".pdf"))
+    plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".png"))
     plt.close()
 
 
@@ -333,7 +412,7 @@ for a in [3]:
     ranges = [[0,500],
         [-8,8],
         [-4,4],
-        [0,600]]
+        [0,33333333333333333333333333333333333333333333333333333333333333333300]]
     yranges = [[-60,30],
         [-1.5,0.8],
         [-4,2],
@@ -350,6 +429,7 @@ for a in [3]:
     plt.legend(loc=3)
     plt.tight_layout()
     plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
+    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".png"))
     plt.close()
 
 
