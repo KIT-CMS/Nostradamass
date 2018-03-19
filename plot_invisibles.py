@@ -154,6 +154,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         plt.legend(loc='best')
         plt.tight_layout()
         plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".pdf"))
+        plt.savefig(os.path.join(out_folder, "phys-target-regressed"+str(a)+".png"))
         plt.close()
 # tau mass
 

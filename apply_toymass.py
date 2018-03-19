@@ -110,11 +110,13 @@ masses = [  125,
             2900,
             3200, 125]
 masses_sv = [a + 5 for a in masses]
-
+def gauss(x, *p):
+    A, mu, sigma, A2, mu2, sigma2 = p
+    return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
 
 channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$'}
-binning = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
+binning = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
 model_path = sys.argv[2]
 outpath = sys.argv[3]
@@ -132,6 +134,7 @@ pts = {}
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
 
+f = open('coeff.txt', 'w')
 for index, filename in enumerate(filenames):
     runtime = 0
     all_events = 0
@@ -142,8 +145,9 @@ for index, filename in enumerate(filenames):
             "m_1", "pt_1", "eta_1", "phi_1",
             "m_2", "pt_2", "eta_2", "phi_2",
             "met", "metphi",
-            "metcov00", "metcov11"]
-    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches).as_matrix()
+            "metcov00", "metcov11", "metcov01", "metcov10"]
+    gen_branches = ["genMetPt", "genMetPhi"]
+    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches+gen_branches).as_matrix()
 
     dim = 12
     n_events = in_array.shape[0]
@@ -151,6 +155,7 @@ for index, filename in enumerate(filenames):
     svfit = np.zeros([n_events, 4])
     Boson = np.zeros([n_events, 4])
     L = np.zeros([n_events, 4])
+    FakeMet = np.zeros([n_events, 2])
 #    M = np.zeros([n_events, 4])
 #    phys_M = np.zeros([n_events, 4])
     gen = np.zeros([n_events, 4])
@@ -159,9 +164,9 @@ for index, filename in enumerate(filenames):
  #   diff_svfit = np.zeros([n_events, 4])
 #    diff_nn = np.zeros([n_events, 4])
 
-    fake_met_cart = np.zeros([n_events, 4])
+    #fake_met_cart = np.zeros([n_events, 4])
     gen_met_phys = np.zeros([n_events, 4])
-    #met_cov = np.zeros([n_events, 2])
+    met_cov = np.zeros([n_events, 2])
     met_unc = np.zeros([n_events, 2])
     pt = np.zeros([n_events, 1])
 
@@ -173,11 +178,15 @@ for index, filename in enumerate(filenames):
         lepton_1 = FourMomentum(a[8], a[9], a[10], a[11], cartesian=False)
         lepton_2 = FourMomentum(a[12], a[13], a[14], a[15], cartesian=False)
         met = FourMomentum(0, a[16], 0, a[17], False)
+        fake_met = FourMomentum(0, a[22], 0, a[21], False)
 
-
+        
+        met_cov[i,:] = np.array([a[20], a[21]])
         met_unc[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
         met_resx = np.sqrt(a[18])
         met_resy = np.sqrt(a[19])
+
+        FakeMet[i,:] = np.array([fake_met.px, fake_met.py])
 
         #fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
         x = np.array([  lepton_1.e,
@@ -278,11 +287,10 @@ for index, filename in enumerate(filenames):
 #            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 #            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-        if index < 6:
-            means_nn[a].append(np.mean(diff_nn[:,a]))
-            widths_nn[a].append(np.std(diff_nn[:,a]))
-            means_sv[a].append(np.mean(diff_svfit[:,a]))
-            widths_sv[a].append(np.std(diff_svfit[:,a]))
+        means_nn[a].append(np.mean(diff_nn[:,a]))
+        widths_nn[a].append(np.std(diff_nn[:,a]))
+        means_sv[a].append(np.mean(diff_svfit[:,a]))
+        widths_sv[a].append(np.std(diff_svfit[:,a]))
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("# events")
@@ -293,6 +301,67 @@ for index, filename in enumerate(filenames):
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".pdf"))
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
         plt.close()
+
+
+# compare true fake met with estimation
+    for a in range(2):
+        fig = plt.figure(figsize=(3,3))
+        ax = fig.add_subplot(111)
+        titles = [ r'$p_x$', r'$p_y$']
+        ax.set_title(process + " fakeMet " + titles[a] )
+        n, bins, patches = plt.hist(FakeMet[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
+#        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
+        # fit
+        from scipy.optimize import curve_fit
+        p0 = [1000., 0., 50., 100., 0., 100.]
+        hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
+        bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+        coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0, bounds=([-1000., -100., -0., -10000., -100., -0.],[10000., 1000., 1000., 10000., 1000, 1000.]))
+        hist_fit = gauss(bin_centres, *coeff)
+        plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
+        print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
+        print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
+        if coeff[2] < coeff[5]:
+            f.write(";".join([str(masses[index])] + [str(b) for b in coeff]))
+        else:
+            f.write(";".join([str(masses[index])] + [str(coeff[b]) for b in [3,4,5]]+ [str(coeff[b]) for b in [0,1,2]]))
+        f.write("\n")
+        plt.tight_layout()
+        plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".pdf"))
+        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".png"))
+
+#off-diag elements
+    for a in range(2):
+        fig = plt.figure(figsize=(3,3))
+        ax = fig.add_subplot(111)
+        titles = [ r'01', r'10']
+        ax.set_title(process + " met cov " + titles[a] )
+        n, bins, patches = plt.hist(met_cov[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
+#        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
+        # fit
+        #from scipy.optimize import curve_fit
+        #p0 = [1000., 0., 50., 100., 0., 100.]
+        #hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
+        #bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+        #print bin_edges
+        #print hist
+        #coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
+        #hist_fit = gauss(bin_centres, *coeff)
+        #plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
+        #print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
+        #print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
+        #f = open('coeff.txt', 'a')
+        #if coeff[2] < coeff[5]:
+        #    f.write(";".join([str(masses[index])] + [str(a) for a in coeff]))
+        #else:
+        #    f.write(";".join([str(masses[index])] + [str(coeff[a]) for a in [3,4,5]]+ [str(coeff[a]) for a in [0,1,2]]))
+        #f.write("\n")
+        #f.close()
+        plt.tight_layout()
+        plt.legend(loc='best')
+        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".pdf"))
+        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".png"))
 
 
 #    for a in range(4):
@@ -412,7 +481,7 @@ for a in [3]:
     ranges = [[0,500],
         [-8,8],
         [-4,4],
-        [0,33333333333333333333333333333333333333333333333333333333333333333300]]
+        [0,3300]]
     yranges = [[-60,30],
         [-1.5,0.8],
         [-4,2],
@@ -461,3 +530,4 @@ for k, v in met_uncs.iteritems():
         print process, " pt50 ", np.mean(pt50), ' median', np.median(pt50), ", toy resolution: ", np.std(pt50)
         print process, " pt100 ", np.mean(pt100), ' median', np.median(pt100), ", toy resolution: ", np.std(pt100)
         print process, " pt1000 ", np.mean(ptInf), ' median', np.median(ptInf), ", toy resolution: ", np.std(ptInf)
+f.close()
