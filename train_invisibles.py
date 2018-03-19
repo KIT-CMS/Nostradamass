@@ -34,17 +34,19 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     else:
         from losses import loss_fully_leptonic as loss
         
- 
+    from keras.optimizers import Adamax 
+    adamax = Adamax()
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
-        model.add(GaussianNoise(stddev=1.0))
+        model.add(Dense(600, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+#        model.add(GaussianNoise(stddev=2.0))
+        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(400, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(100, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=loss, optimizer='Adamax')
+        model.compile(loss=loss, optimizer=adamax)
     else:
         model = load_model(previous_model)
 
@@ -53,11 +55,11 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     from keras.callbacks import EarlyStopping
     from keras.callbacks import TensorBoard
     tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
-    early_stopping = EarlyStopping(patience = 20)
+    early_stopping = EarlyStopping(patience = 30)
 
     from sklearn.model_selection import train_test_split
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
     tmp_X = X_train 
 
     for i in range(1):
