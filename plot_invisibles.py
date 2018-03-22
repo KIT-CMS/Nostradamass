@@ -204,7 +204,16 @@ if __name__ == '__main__':
     #    X, Y, B, L = load_from_pickle(in_filenames[0])
     #else:
     X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
-    #X, Y = add_pu_target(X, Y, 0.,  0)
-    X, Y = add_pu_target(X, Y, 7., 23.)
+    #X, Y = add_pu_target(X, Y, 0.,  0, 0.)
+    X, Y = add_pu_target(X, Y, 7., 23., 80.)
+    from common_functions import i_inv2_py, i_inv2_px, i_inv2_pz, i_inv2_e
     regressed_Y = predict(model_path, X, channel)
+    #regressed_Y[:,13] = Y[:,13] 
+    #regressed_Y[:,14] = Y[:,14] 
+    #regressed_Y[:,15] = Y[:,15] 
+    #regressed_Y[:,16] = Y[:,16] 
+    #regressed_Y[:,17] = Y[:,17] 
+    #regressed_Y[:,18] = Y[:,18] 
+    #regressed_Y[:,19] = Y[:,19] 
+    #regressed_Y[:,20] = Y[:,20]
     plot(regressed_Y, X, Y, B, L, channel, out_folder)

@@ -129,7 +129,17 @@ means_sv = [[],[], [], []]
 widths_sv = [[],[], [], []]
 
 met_uncs = {}
+met_covs = {}
 pts = {}
+def twoD_Gaussian((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+    xo = float(xo)
+    yo = float(yo)    
+    a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+    b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+    c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+    g = offset + amplitude*np.exp( - (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo) 
+                            + c*((y-yo)**2)))
+    return g.ravel()
 
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
@@ -149,7 +159,7 @@ for index, filename in enumerate(filenames):
     gen_branches = ["genMetPt", "genMetPhi"]
     in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches+gen_branches).as_matrix()
 
-    dim = 12
+    dim = 13
     n_events = in_array.shape[0]
     X = np.zeros([n_events, dim])
     svfit = np.zeros([n_events, 4])
@@ -200,7 +210,8 @@ for index, filename in enumerate(filenames):
                         met.px,
                         met.py,
                         met_resx,
-                        met_resy
+                        met_resy,
+                        met_cov[i,0]
                         ])
         X[i,:] = x
         svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
@@ -220,6 +231,22 @@ for index, filename in enumerate(filenames):
         
 #line +=1
 
+    # covariance plots
+    #from scipy import optimize as opt
+   # data = twoD_Gaussian((met_unc[:,0], met_unc[:,1]), 100, 0, 0, 20, 20, 0, 10)
+  #  data_noisy = data + 0.00001*np.random.normal(size=met_unc.shape[0])
+ #   initial_guess = (100, 0, 0, 20, 20, 0, 10) 
+   # print met_unc
+#    popt, pcov = opt.curve_fit(twoD_Gaussian, ( met_unc[:,0], met_unc[:,1]), data_noisy, p0=initial_guess)
+  #  print 'cov:'
+  #  print popt[3], " ", popt[4]
+  #  print pcov[3,3], " ", pcov[3,4]
+  #  print pcov[4,3], " ", pcov[4,4]
+  #  print pcov
+    cov_m = ( np.cov(FakeMet[:,0], FakeMet[:,1]) )
+    print cov_m
+    f.write(','.join([process, str(cov_m[0,0]), str(cov_m[1,1]), str(cov_m[1,0])]))
+    f.write("\n")
 
 
     all_events += X.shape[0]
@@ -238,6 +265,7 @@ for index, filename in enumerate(filenames):
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
 
     met_uncs[process] = met_unc
+    met_covs[process] = met_cov
     pts[process] = pt
     # pt-dependency
 #    for a in [0]:
@@ -319,13 +347,13 @@ for index, filename in enumerate(filenames):
         coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0, bounds=([-1000., -100., -0., -10000., -100., -0.],[10000., 1000., 1000., 10000., 1000, 1000.]))
         hist_fit = gauss(bin_centres, *coeff)
         plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
-        print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
-        print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
-        if coeff[2] < coeff[5]:
-            f.write(";".join([str(masses[index])] + [str(b) for b in coeff]))
-        else:
-            f.write(";".join([str(masses[index])] + [str(coeff[b]) for b in [3,4,5]]+ [str(coeff[b]) for b in [0,1,2]]))
-        f.write("\n")
+       # print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
+       # print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
+#        if coeff[2] < coeff[5]:
+#            f.write(";".join([str(masses[index])] + [str(b) for b in coeff]))
+#        else:
+#            f.write(";".join([str(masses[index])] + [str(coeff[b]) for b in [3,4,5]]+ [str(coeff[b]) for b in [0,1,2]]))
+#        f.write("\n")
         plt.tight_layout()
         plt.legend(loc='best')
         plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".pdf"))
@@ -349,7 +377,7 @@ for index, filename in enumerate(filenames):
         #coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
         #hist_fit = gauss(bin_centres, *coeff)
         #plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
-        #print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
+       # print process, " metcov ", a, " ",  np.std(met_cov[:,a])
         #print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
         #f = open('coeff.txt', 'a')
         #if coeff[2] < coeff[5]:
@@ -429,10 +457,10 @@ for index, filename in enumerate(filenames):
 #        plt.close()
 
 
-    print "runtime", runtime
-    print "events", all_events
-    print "events/s", all_events/float(runtime)
-
+    #print "runtime", runtime
+    #print "events", all_events
+    #print "events/s", all_events/float(runtime)
+"""
 for a in range(4):
     fig = plt.figure(figsize=(3,3))
     ax = fig.add_subplot(111)
@@ -500,7 +528,7 @@ for a in [3]:
     plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
     plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".png"))
     plt.close()
-
+"""
 
 for k, v in met_uncs.iteritems():
     # fake met / vgl mit cov matrix
@@ -509,25 +537,27 @@ for k, v in met_uncs.iteritems():
         ax = fig.add_subplot(111)
         irange = [0,80]
 #        n, bins, patches = plt.hist(fake_met_cart[:,a], 150, normed=1, facecolor=colors["color_true"], alpha=0.5, range=irange, histtype='step', label="fake met")
-        pt10 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10) and (pts[k][i] > 0 ))]
-        pt30 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 30) and (pts[k][i] > 10 ))]
-        pt50 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 50) and (pts[k][i] > 30 ))]
-        pt100 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 100) and (pts[k][i] > 50 ))]
-        ptInf = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10000) and (pts[k][i] > 100 ))]
+ #       pt10 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10) and (pts[k][i] > 0 ))]
+ #       pt30 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 30) and (pts[k][i] > 10 ))]
+ #       pt50 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 50) and (pts[k][i] > 30 ))]
+ #       pt100 = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 100) and (pts[k][i] > 50 ))]
+ #       ptInf = [v[i,a] for i in range(v.shape[0]) if ((pts[k][i] < 10000) and (pts[k][i] > 100 ))]
         n, bins, patches = plt.hist(v[:,a], 100, normed=1, alpha=0.5, range=irange, histtype='step', label=k)
-        n, bins, patches = plt.hist(pt10, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='10')
-        n, bins, patches = plt.hist(pt30, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='30')
-        n, bins, patches = plt.hist(pt50, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='50')
-        n, bins, patches = plt.hist(pt100, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='100')
-        n, bins, patches = plt.hist(ptInf, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='Inf')
+        n, bins, patches = plt.hist(met_covs[k][:,a], 100, normed=1, alpha=0.5, range=irange, histtype='step', label='cov')
+ #       n, bins, patches = plt.hist(pt10, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='10')
+ #       n, bins, patches = plt.hist(pt30, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='30')
+ #       n, bins, patches = plt.hist(pt50, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='50')
+ #       n, bins, patches = plt.hist(pt100, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='100')
+ #       n, bins, patches = plt.hist(ptInf, 100, normed=1, alpha=0.5, range=irange, histtype='step', label='Inf')
  #       n, bins, patches = plt.hist(scaled_Y[:,a+1], 150, normed=1, facecolor="black", alpha=0.5, range=irange, histtype='step', label="smear")
         plt.legend(loc='best')
         plt.savefig(os.path.join(outpath, "met_unc"+str(a)+'_'+str(k)+".png"))
 #        print process, " fake met: ", np.mean(fake_met_cart[:,a]), ' median', np.median(fake_met_cart[:,a]), ", resolution: ", np.std(fake_met_cart[:,a])
-        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
-        print process, " pt10 ", np.mean(pt10), ' median', np.median(pt10), ", toy resolution: ", np.std(pt10)
-        print process, " pt30 ", np.mean(pt30), ' median', np.median(pt30), ", toy resolution: ", np.std(pt30)
-        print process, " pt50 ", np.mean(pt50), ' median', np.median(pt50), ", toy resolution: ", np.std(pt50)
-        print process, " pt100 ", np.mean(pt100), ' median', np.median(pt100), ", toy resolution: ", np.std(pt100)
-        print process, " pt1000 ", np.mean(ptInf), ' median', np.median(ptInf), ", toy resolution: ", np.std(ptInf)
+        print process, " met res: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
+        print process, " met cov: ", np.mean(met_covs[k][:,a]),  ", resolution: ", np.std(met_covs[k][:,a]), "relation to res:", np.cov(met_covs[k][:,a], v[:,a])
+  #      print process, " pt10 ", np.mean(pt10), ' median', np.median(pt10), ", toy resolution: ", np.std(pt10)
+  #      print process, " pt30 ", np.mean(pt30), ' median', np.median(pt30), ", toy resolution: ", np.std(pt30)
+  #      print process, " pt50 ", np.mean(pt50), ' median', np.median(pt50), ", toy resolution: ", np.std(pt50)
+  #      print process, " pt100 ", np.mean(pt100), ' median', np.median(pt100), ", toy resolution: ", np.std(pt100)
+  #      print process, " pt1000 ", np.mean(ptInf), ' median', np.median(ptInf), ", toy resolution: ", np.std(ptInf)
 f.close()

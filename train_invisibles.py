@@ -24,8 +24,8 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
     print "adding pu target"
-    X, Y = add_pu_target(X, Y, 7., 23.)
-    #X, Y = add_pu_target(X, Y, 0., 0.)
+    X, Y = add_pu_target(X, Y, 7., 24., 80.)
+    #X, Y = add_pu_target(X, Y, 0., 0., 0.)
 
     if channel == "tt":
         from losses import loss_fully_hadronic as loss
@@ -33,20 +33,31 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
         from losses import loss_semi_leptonic as loss
     else:
         from losses import loss_fully_leptonic as loss
-        
+    from keras.layers import LeakyReLU
+    
+#    prelu = PReLU(alpha_initializer='zeros', alpha_regularizer=None, alpha_constraint=None, shared_axes=None)
+    leaky = LeakyReLU()
+    leaky.__name__ = 'leaky'
     from keras.optimizers import Adamax 
-    adamax = Adamax()
+    optimizer = Adamax()
+    #from keras.optimizers import RMSprop
+    #optimizer = RMSprop()
     if previous_model == None:    
         model = Sequential()
-        model.add(Dense(600, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
-#        model.add(GaussianNoise(stddev=2.0))
-        model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(400, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(300, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-        model.add(Dense(200, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='linear', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
+        model.add(GaussianNoise(stddev=1.0))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+        model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=loss, optimizer=adamax)
+        model.compile(loss=loss, optimizer=optimizer)
     else:
         model = load_model(previous_model)
 
@@ -54,8 +65,8 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     from keras.callbacks import ModelCheckpoint
     from keras.callbacks import EarlyStopping
     from keras.callbacks import TensorBoard
-    tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
-    early_stopping = EarlyStopping(patience = 30)
+    #tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
+    early_stopping = EarlyStopping(patience = 100)
 
     from sklearn.model_selection import train_test_split
 
@@ -71,10 +82,10 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                                             mode='auto',
                                             period=1)
         model.fit(tmp_X, Y_train,
-                    batch_size=20000,
+                    batch_size=100000,
                     epochs=2000,
                     validation_data = (X_test, Y_test),
-                    callbacks = [model_checkpoint, early_stopping, tensorboard])
+                    callbacks = [model_checkpoint, early_stopping])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
     for f in files:
         os.remove(os.path.join(out_folder, f))
