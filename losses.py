@@ -27,7 +27,9 @@ i_inv2_pz = 20
 
 
 def loss_fully_hadronic(y_true, y_pred):
+    mTau_squared = (1.77**2)
     gen_mass = K.square(y_true[:,i_gen_mass])
+    gen_mass_sqrt = y_true[:,i_gen_mass]
 
     dx = (K.square(y_pred[:,i_inv1_px] - y_true[:,i_inv1_px])/gen_mass) + \
          (K.square(y_pred[:,i_inv2_px] - y_true[:,i_inv2_px])/gen_mass) + \
