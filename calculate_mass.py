@@ -19,7 +19,7 @@ branches=[
         "m_1", "pt_1", "eta_1", "phi_1", 
         "m_2", "pt_2", "eta_2", "phi_2", 
         "met", "metphi",
-        "metcov00", "metcov11"]
+        "metcov00", "metcov11", "metcov01"]
 
 def calculate_arrays(l, args):
         starttime = time.time()
@@ -48,11 +48,12 @@ def calculate_arrays(l, args):
             met   = FourMomentum(0, a[8], 0, a[9], False)
             metcovxx = np.sqrt(a[10])
             metcovyy = np.sqrt(a[11])
+            metcovxy = a[12]
 
             X[index,:] = np.array([  tau_1.e, tau_1.px, tau_1.py, tau_1.pz,
                             tau_2.e, tau_2.px, tau_2.py, tau_2.pz,
                             met.px, met.py,
-                            metcovxx, metcovyy ])
+                            metcovxx, metcovyy, metcovxy ])
 
             visible = tau_1 + tau_2
             L[index,:] = visible.as_numpy_array()
@@ -66,17 +67,19 @@ def calculate_arrays(l, args):
                                                        hc_types =        [("pt_nn",np.float64), ("eta_nn", np.float64), ("phi_nn", np.float64), ("m_nn", np.float64)])
 
         outputs = [fullvector_hc, fullvector_cartesian]
-        if full_output:
-            for i in range(2):
-                neutrino_four_momenta = []
-                for line in range(Y.shape[0]):
-                    neutrino_four_momenta.append(FourMomentum(Y[line,13+4*i], Y[line,14+4*i], Y[line,15+4*i], Y[line,16+4*i], cartesian=True))
-                    s = "_n" + str(i+1) 
-                    neutrino_hc, neutrino_cartesian = transform_fourvector(neutrino_four_momenta,
-                                                           cartesian_types = [("e"+s,np.float64),  ("px"+s, np.float64),  ("py"+s, np.float64),  ("pz"+s, np.float64)],
-                                                           hc_types =        [("pt"+s,np.float64), ("eta"+s, np.float64), ("phi"+s, np.float64), ("m"+s, np.float64)])
-                    outputs.append(neutrino_hc)
-                    outputs.append(neutrino_cartesian)
+#        if mode == 'copy':
+#            outputs.append(arr_all)
+#        if full_output:
+#            for i in range(2):
+#                neutrino_four_momenta = []
+#                for line in range(Y.shape[0]):
+#                    neutrino_four_momenta.append(FourMomentum(Y[line,13+4*i], Y[line,14+4*i], Y[line,15+4*i], Y[line,16+4*i], cartesian=True))
+#                    s = "_n" + str(i+1) 
+#                    neutrino_hc, neutrino_cartesian = transform_fourvector(neutrino_four_momenta,
+#                                                           cartesian_types = [("e"+s,np.float64),  ("px"+s, np.float64),  ("py"+s, np.float64),  ("pz"+s, np.float64)],
+#                                                           hc_types =        [("pt"+s,np.float64), ("eta"+s, np.float64), ("phi"+s, np.float64), ("m"+s, np.float64)])
+#                    outputs.append(neutrino_hc)
+#                    outputs.append(neutrino_cartesian)
         l.acquire()
         print os.getpid(), ": lock hold by process creating", output_file, " lock: ", l
 
@@ -120,6 +123,7 @@ if __name__ == '__main__':
     full_output = data_loaded["full output"]
     output_folder = data_loaded["output_folder"]
     n_processes = data_loaded["n_processes"]
+    mode = data_loaded["mode"]
 
     args = []
     for f in files:
