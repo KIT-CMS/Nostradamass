@@ -3,7 +3,7 @@ from os import environ
 
 environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 environ["CUDA_VISIBLE_DEVICES"] ='2'
-from root_numpy import root2array, array2tree, array2root, list_trees
+from root_numpy import root2array, array2tree, array2root, list_trees, list_directories
 from ROOT import TTree, TFile
 import numpy as np
 
@@ -12,7 +12,7 @@ from fourvector import FourMomentum
 from common_functions import predict
 import hashlib
 import time
-
+from shutil import copyfile
 # load the input file
 
 branches=[
@@ -21,8 +21,7 @@ branches=[
         "met", "metphi",
         "metcov00", "metcov11", "metcov01"]
 
-def calculate_arrays(l, args):
-        starttime = time.time()
+def calculate_arrays(args):
         input_file = args[0]
         treename = args[1]
         foldername = args[2]
@@ -30,11 +29,13 @@ def calculate_arrays(l, args):
         model_path = args[4]
         full_output = args[5]
         channel = args[6]
+        mode = args[7]
+        lock = args[8]
         try:
             arr = root2array(input_file, foldername+"/"+treename, branches = branches)
         except:
             # The input file has not been found or the tree size is 0
-            return
+            return False
 
         # pre-allocate the input vector to Keras
 
@@ -63,8 +64,8 @@ def calculate_arrays(l, args):
         from common_functions import full_fourvector, transform_fourvector
 
         fullvector_hc, fullvector_cartesian = full_fourvector(Y, L,
-                                                       cartesian_types = [("e_nn",np.float64),  ("px_nn", np.float64),  ("py_nn", np.float64),  ("pz_nn", np.float64)],
-                                                       hc_types =        [("pt_nn",np.float64), ("eta_nn", np.float64), ("phi_nn", np.float64), ("m_nn", np.float64)])
+                                                       cartesian_types = [("e_N",np.float64),  ("px_N", np.float64),  ("py_N", np.float64),  ("pz_N", np.float64)],
+                                                       hc_types =        [("pt_N",np.float64), ("eta_N", np.float64), ("phi_N", np.float64), ("m_N", np.float64)])
 
         outputs = [fullvector_hc, fullvector_cartesian]
 #        if mode == 'copy':
@@ -80,25 +81,32 @@ def calculate_arrays(l, args):
 #                                                           hc_types =        [("pt"+s,np.float64), ("eta"+s, np.float64), ("phi"+s, np.float64), ("m"+s, np.float64)])
 #                    outputs.append(neutrino_hc)
 #                    outputs.append(neutrino_cartesian)
-        l.acquire()
-        print os.getpid(), ": lock hold by process creating", output_file, " lock: ", l
+        lock.acquire()
+        print os.getpid(), ": lock hold by process creating", output_file, " lock: ", lock
 
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
+
+        if not os.path.exists(output_file):
+            if mode=='copy':
+                copyfile(input_file, output_file)
         f = TFile(output_file, "UPDATE")
-        f.mkdir(foldername)
+
+        if not foldername in list_directories(output_file):
+            f.mkdir(foldername)
+
+        if mode =='friend':
+            tree = None 
+        elif mode == 'copy':
+            tree = f.Get(foldername+"/"+treename)
         getattr(f, foldername).cd()
-        tree = None
         for output in outputs:
             tree = array2tree(output, name = treename, tree = tree)
         f.Write()
         f.Close()
-        l.release()
-        runtime = time.time() - starttime
-        t = open(str('logs/'+str(os.getpid())), 'a')
-        t.write(str(runtime)+"; " + str(arr.shape[0])+'\n')
-        t.close()
+        lock.release()
         print os.getpid(), ": lock released by process "
+        return True
 
 def get_output_filename(input_file, output_folder):
     filename = os.path.basename(input_file)
@@ -126,7 +134,9 @@ if __name__ == '__main__':
     mode = data_loaded["mode"]
 
     args = []
-    for f in files:
+    locks = {}
+    m = Manager()
+    for index, f in enumerate(files):
         trees = list_trees(f)
         for tree in trees:
             if tree in channels_models:
@@ -136,13 +146,17 @@ if __name__ == '__main__':
                 continue
             foldername, treename = tree.split("/")
             output_filename = get_output_filename(f, output_folder)
-            args.append([f, treename, foldername, output_filename, model_path, full_output, channel])
-    #pprint.pprint(args)
-    # todo: do not write friend trees but modify the original ones with the new entries
+            if not output_filename in locks:
+                locks[output_filename] = m.Lock()
+            args.append([f, treename, foldername, output_filename, model_path, full_output, channel, mode, locks[output_filename]])
+    if len(args) == 0:
+        raise RuntimeError("None of the specified input trees have been found in the input files.")
     pool = Pool(processes=n_processes)
-    m = Manager()
-    l = m.Lock()
-    func = partial(calculate_arrays, l)
-    results = pool.map(func, args)
+    results = pool.map(calculate_arrays, args)
     pool.close()
     pool.join()
+    if all(results):
+        print "Nostradamass successfully applied on ", len(results), " trees"
+    else:
+        raise RuntimeError("Some threads finished with errors")
+

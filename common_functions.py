@@ -207,8 +207,14 @@ from losses import i_inv1_e, i_inv1_px, i_inv1_py, i_inv1_pz
 from losses import i_inv2_e, i_inv2_px, i_inv2_py, i_inv2_pz 
 from losses import i_tau1_e, i_tau1_px, i_tau1_py, i_tau1_pz
 from losses import i_tau2_e, i_tau2_px, i_tau2_py, i_tau2_pz
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
 
 def predict(model_path, X, channel):
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.1
+    sess = tf.Session(config=config)
+    set_session(sess)
     model = load_model(model_path)
     Y = model.predict(X)
     mTau_squared = np.full([X.shape[0], 1], (1.77**2))
