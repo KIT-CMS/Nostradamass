@@ -13,6 +13,7 @@ from common_functions import predict
 import hashlib
 import time
 from shutil import copyfile
+from random import shuffle
 # load the input file
 
 branches=[
@@ -134,8 +135,8 @@ if __name__ == '__main__':
     mode = data_loaded["mode"]
 
     args = []
+    managers = {}
     locks = {}
-    m = Manager()
     for index, f in enumerate(files):
         trees = list_trees(f)
         for tree in trees:
@@ -146,9 +147,12 @@ if __name__ == '__main__':
                 continue
             foldername, treename = tree.split("/")
             output_filename = get_output_filename(f, output_folder)
-            if not output_filename in locks:
-                locks[output_filename] = m.Lock()
-            args.append([f, treename, foldername, output_filename, model_path, full_output, channel, mode, locks[output_filename]])
+            if not output_filename in managers:
+                managers[output_filename] = Manager()
+                locks[output_filename] = managers[output_filename].Lock()
+            lock = locks[output_filename]
+            args.append([f, treename, foldername, output_filename, model_path, full_output, channel, mode, lock])
+    shuffle(args)
     if len(args) == 0:
         raise RuntimeError("None of the specified input trees have been found in the input files.")
     pool = Pool(processes=n_processes)
