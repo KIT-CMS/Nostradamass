@@ -18,12 +18,12 @@
 
 using namespace Pythia8;
 
-#define MIN_ELECTRON_PT 15
-#define MAX_ELECTRON_ETA 3.0
-#define MIN_MUON_PT 15
-#define MAX_MUON_ETA 3.0
-#define MIN_TAU_PT 15
-#define MAX_TAU_ETA 3.0
+#define MIN_ELECTRON_PT 26
+#define MAX_ELECTRON_ETA 2.6
+#define MIN_MUON_PT 20
+#define MAX_MUON_ETA 2.5
+#define MIN_TAU_PT 30
+#define MAX_TAU_ETA 2.4
 
 void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool inverted, int int_mass, std::string seed)
 {
@@ -44,8 +44,11 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
     pythia.readString("Beams:idA = 2212");
     pythia.readString("Beams:idB = 2212");
     pythia.readString("Beams:eCM = 13000.");
+    pythia.readString("HiggsSM:all = off");
     pythia.readString("HiggsSM:gg2H = on");
-    pythia.readString("Main:numberOfEvents = 2500");
+    //pythia.readString("HiggsSM:ff2Hff(t:ZZ) = on");
+    //pythia.readString("HiggsSM:ff2Hff(t:WW)  = on");
+    pythia.readString("Main:numberOfEvents = 3");
     pythia.readString("Random:setSeed = true");
     pythia.readString("ProcessLevel:resonanceDecays = on");
     pythia.readString("PartonLevel:all = on");// if off, generation stops before parton level events (partons are quarks and gluons)
@@ -225,6 +228,78 @@ bool fiducialCuts(Particle* p)
         return ((p->pT() > (MIN_TAU_PT)) && abs(p->eta()) < (MAX_TAU_ETA));
 }
 
+
+std::vector<int> upToSeveralMothers(Pythia &pythia, int index)
+{
+    if(pythia.event[index].motherList().size()==1)
+        return upToSeveralMothers(pythia, pythia.event[index].mother1());
+    else
+        return pythia.event[index].motherList();
+}
+
+int cousin(Pythia &pythia, int index, int index_previous)
+{
+	std::cout << "cousing fkt index/prev" << index << "/" << index_previous << std::endl;
+    if(pythia.event[index].motherList().size() == 0)
+        return 0;
+    if(pythia.event[index].daughterList().size()==1)
+        return cousin(pythia, pythia.event[index].mother1(), index);
+    else
+    {
+        auto daughters = pythia.event[index].daughterList();
+		std::cout << index << "," << index_previous << "daughters: ";
+        for(auto d: daughters)
+        {
+			std::cout << d << std::endl;
+            if(d!= index_previous)
+                return d;
+        }
+    }
+}
+
+int downToEnd(Pythia &pythia, int index)
+{
+    if( pythia.event[index].isFinal())
+        return index;
+    else
+	{
+		if (pythia.event[index].daughterList().size()>1)
+			return 0;
+        return downToEnd(pythia, pythia.event[index].daughter1());
+	}
+}
+
+std::vector<int> getJet_indices(Pythia &pythia, int i_lep, int genBosonIdx)
+{
+    auto mothers = pythia.event[genBosonIdx].motherList();
+    auto bosonParents = upToSeveralMothers(pythia, genBosonIdx);
+    std::vector<int> i_finalStateJets;
+    for(auto parent: bosonParents)
+    {
+        std::cout << "parent " << parent << std::endl;
+        auto p = parent;
+        int c;
+        c = cousin(pythia, pythia.event[p].mother1(), p);
+        if(c!=0)
+            i_finalStateJets.push_back(c);
+		
+        do
+        {
+            c = cousin(pythia, pythia.event[pythia.event[p].mother1()].mother1(), pythia.event[p].mother1());
+            p = c;
+            if(c!=0)
+                i_finalStateJets.push_back(c);
+        }
+        while ( c != 0 );
+    }
+	// remove duplicates
+	sort( i_finalStateJets.begin(), i_finalStateJets.end() );
+    i_finalStateJets.erase( unique( i_finalStateJets.begin(), i_finalStateJets.end() ), i_finalStateJets.end() );
+    for(auto j: i_finalStateJets)
+        std::cout << j << "/ " << downToEnd(pythia, j) << std::endl;
+    return i_finalStateJets;
+}
+
 int main( int argc, char * argv[] )
 {
 
@@ -270,6 +345,7 @@ int main( int argc, char * argv[] )
     Particle *negLepNeutrino, *negVisible;
 
     int bosonIdx = 0;
+    int genBosonIdx = 0;
     std::vector<int> negTauDaughters, posTauDaughters;
     std::vector<int> negTauVis, posTauVis;
     int tries = 0;
@@ -290,12 +366,18 @@ int main( int argc, char * argv[] )
         negTauVis.clear();
         posTauVis.clear();
         pythia.next();
-
+        std::cout << "\n Next Event "<< std::endl;
+        // find the index if the first generated boson: genBosonIdx
+        // find the index of the boson decaying to the two taus : bosonIdx
         for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
         {
+            if (pythia.event[iPart].id() == 25 && pythia.event[iPart].status() == -22) // Boson
+                genBosonIdx = iPart;
             if (pythia.event[iPart].id() == 25) // Boson
                 bosonIdx = iPart;
         }
+        // get the indices of the final state jets
+        auto posTauGluonJet = getJet_indices(pythia, 0, genBosonIdx);
 
         //positive lepton
         posTauIdx = pythia.event[bosonIdx].daughter1();
@@ -304,7 +386,6 @@ int main( int argc, char * argv[] )
         negTauNeutrinoIdx = pythia.event[negTauIdx].daughter1();
 
         bool goodEvent = true; 
-
 
 
         posTauDaughters = pythia.event[posTauIdx].daughterList();
@@ -346,6 +427,31 @@ int main( int argc, char * argv[] )
         // writing out
         evt.next();
         evt.add(pythia.event[bosonIdx]);
+        for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
+        {
+           std::cout << iPart << " :\t id:" << pythia.event[iPart].id() << ", pt: " << pythia.event[iPart].pT() << ";" << pythia.event[iPart].m() << ", \t, daughters:";
+           for(auto d:  pythia.event[iPart].daughterList())
+               std::cout << d << ",";
+            std::cout << " \t; mothers:";
+
+           for(auto d: pythia.event[iPart].motherList())
+                std::cout << d << ",";
+            std::cout << "status/final: " << pythia.event[iPart].status() << "/" << pythia.event[iPart].isFinal() << std::endl;
+        }
+        std::cout << "final state particles: " << std::endl;
+        for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
+        {
+            if(!pythia.event[iPart].isFinal() || pythia.event[iPart].status()==91)
+                continue;
+           std::cout << iPart << " :\t id:" << pythia.event[iPart].id() << ", pt: " << pythia.event[iPart].pT() << ", \t, daughters:";
+           for(auto d:  pythia.event[iPart].daughterList())
+               std::cout << d << ",";
+            std::cout << " \t; mothers:";
+
+           for(auto d: pythia.event[iPart].motherList())
+                std::cout << d << ",";
+            std::cout << "status/final: " << pythia.event[iPart].status() << "/" << pythia.event[iPart].isFinal() << std::endl;
+        }
 
         if(!inverted)
         {
