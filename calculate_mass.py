@@ -8,12 +8,16 @@ from ROOT import TTree, TFile
 import numpy as np
 
 from common_functions import load_model
+from common_functions import full_fourvector, transform_fourvector
 from fourvector import FourMomentum
 from common_functions import predict
 import hashlib
 import time
 from shutil import copyfile
 from random import shuffle
+from multiprocessing import Pool, Manager
+from functools import partial
+import os, io, sys, yaml
 # load the input file
 
 branches=[
@@ -36,7 +40,7 @@ def calculate_arrays(args):
             arr = root2array(input_file, foldername+"/"+treename, branches = branches)
         except:
             # The input file has not been found or the tree size is 0
-            return False
+            return (input_file, 0)
 
         # pre-allocate the input vector to Keras
 
@@ -62,13 +66,13 @@ def calculate_arrays(args):
         Y = predict(model_path, X, channel)
         # convert Y to usual hadron-collider coordinates
 
-        from common_functions import full_fourvector, transform_fourvector
 
         fullvector_hc, fullvector_cartesian = full_fourvector(Y, L,
                                                        cartesian_types = [("e_N",np.float64),  ("px_N", np.float64),  ("py_N", np.float64),  ("pz_N", np.float64)],
                                                        hc_types =        [("pt_N",np.float64), ("eta_N", np.float64), ("phi_N", np.float64), ("m_N", np.float64)])
 
-        outputs = [fullvector_hc, fullvector_cartesian]
+        #outputs = [fullvector_hc, fullvector_cartesian]
+        outputs = [fullvector_hc]
 #        if mode == 'copy':
 #            outputs.append(arr_all)
 #        if full_output:
@@ -83,7 +87,7 @@ def calculate_arrays(args):
 #                    outputs.append(neutrino_hc)
 #                    outputs.append(neutrino_cartesian)
         lock.acquire()
-        print os.getpid(), ": lock hold by process creating", output_file, " lock: ", lock
+        #print os.getpid(), ": lock hold by process creating", output_file, " lock: ", lock
 
         if not os.path.exists(os.path.dirname(output_file)):
             os.makedirs(os.path.dirname(output_file))
@@ -106,29 +110,49 @@ def calculate_arrays(args):
         f.Write()
         f.Close()
         lock.release()
-        print os.getpid(), ": lock released by process "
-        return True
+        #print os.getpid(), ": lock released by process "
+        return (input_file, X.shape[0])
 
 def get_output_filename(input_file, output_folder):
     filename = os.path.basename(input_file)
     dirname = os.path.join(output_folder, os.path.dirname(input_file).split("/")[-1], filename)
     return dirname 
 
-from multiprocessing import Pool, Manager
-from functools import partial
-import os, io, sys, yaml
+
+sum_events = 0
+start = time.time() 
+def log(retval):
+    os.system("clear")
+    results.append(retval[0])
+    global sum_events
+    sum_events = sum_events + retval[1]
+    files = sorted(list(set([a[0] for a in args])))
+    total_tbd = 0
+    total_done = 0
+    for f in files:
+        n_trees = len([a[0] for a in args if a[0] == f])
+        n_done = results.count(f)
+        print os.path.basename(f), " ready:", n_done, "/", n_trees, ' trees'
+        total_tbd += n_trees
+        total_done += n_done
+    print "\n", sum_events, " events have been processed, ", sum_events/ (time.time() - start), " events/s in average. ", total_done, " / ", total_tbd, " trees finished"
+#    print len(results), " / ", len(args), " done"
+
 if __name__ == '__main__':
     # first argument: config file
     config_file = sys.argv[1]
-    print config_file
-
+    if len(sys.argv)>2:
+        index_files = [int(i) for i in (sys.argv[2:])]
+    else:
+        index_files = None
     # Read YAML file
     with open(config_file, 'r') as stream:
         data_loaded = yaml.load(stream)
 
-    import pprint
     channels_models = data_loaded["models"]
     files = data_loaded["files"]
+    if index_files != None:
+        files = [files[index] for index in index_files]
     full_output = data_loaded["full output"]
     output_folder = data_loaded["output_folder"]
     n_processes = data_loaded["n_processes"]
@@ -155,8 +179,10 @@ if __name__ == '__main__':
     shuffle(args)
     if len(args) == 0:
         raise RuntimeError("None of the specified input trees have been found in the input files.")
+    results = []
     pool = Pool(processes=n_processes)
-    results = pool.map(calculate_arrays, args)
+    for item in args:
+        pool.apply_async(calculate_arrays, args=[item], callback = log)
     pool.close()
     pool.join()
     if all(results):
