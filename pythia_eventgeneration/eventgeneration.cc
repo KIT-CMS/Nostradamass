@@ -10,10 +10,7 @@
 #include <cmath>
 #include "Pythia8/Pythia.h"
 #include <TFile.h>
-//#include "TH1.h" 
 #include <TTree.h>
-//#include "TROOT.h"
-//#include "TLorentzVector.h"
 #include <time.h>
 
 using namespace Pythia8;
@@ -46,9 +43,9 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
     pythia.readString("Beams:eCM = 13000.");
     pythia.readString("HiggsSM:all = off");
     pythia.readString("HiggsSM:gg2H = on");
-    //pythia.readString("HiggsSM:ff2Hff(t:ZZ) = on");
-    //pythia.readString("HiggsSM:ff2Hff(t:WW)  = on");
-    pythia.readString("Main:numberOfEvents = 3");
+    pythia.readString("HiggsSM:ff2Hff(t:ZZ) = on");
+    pythia.readString("HiggsSM:ff2Hff(t:WW)  = on");
+    pythia.readString("Main:numberOfEvents = 10000");
     pythia.readString("Random:setSeed = true");
     pythia.readString("ProcessLevel:resonanceDecays = on");
     pythia.readString("PartonLevel:all = on");// if off, generation stops before parton level events (partons are quarks and gluons)
@@ -67,7 +64,7 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
 
 
     pythia.readString("15:onMode = off");
-
+	std::cout << flavour1 << " / " << flavour2 << std::endl;
     if ((flavour1 == 'e') && (flavour2 == 'e'))
     {
         pythia.readString("15:onIfAny = 11");
@@ -122,15 +119,16 @@ class diTauEvents {
         void next();
         void add(Particle&);
         void add(Particle*);
+        void add(int&);
         void fill();
         void write();
-    // particles: Boson, 2xTau, 4xNeutrino = 28
+    // particles: Boson, 2xTau, 4xNeutrino, 4xjet = 44
 
     private:
-        static const size_t n_particles = 7;
+        static const size_t n_particles = 11;
         static const size_t n_branches = 4 * n_particles;
         float toTree[n_branches];
-        int indices[n_particles];
+        int indices[n_particles+1];
         TFile* out_file;
         TTree* out_tree;
 
@@ -167,6 +165,11 @@ void diTauEvents::add(Particle *in)
     indices[particle_index++] = in->id();
 }
 
+void diTauEvents::add(int& in)
+{
+    indices[particle_index++] = in;
+}
+
 void diTauEvents::next()
 {
     particle_index = 0;
@@ -186,7 +189,7 @@ diTauEvents::diTauEvents(std::string out_file_name)
     out_file = new TFile(out_file_name.c_str(), "RECREATE");
     out_tree = new TTree("tree", "tree");
 
-    std::string particle_postfix[] = {"B", "1", "2", "t1n", "l1n", "t2n", "l2n"};
+    std::string particle_postfix[] = {"B", "1", "2", "t1n", "l1n", "t2n", "l2n", "j1", "j2", "j3", "j4"};
     std::string particle_prefix[] = {"e", "px", "py", "pz"};
     size_t i = 0;
     size_t j = 0;
@@ -198,6 +201,7 @@ diTauEvents::diTauEvents(std::string out_file_name)
                 out_tree->Branch((q+"_"+p).c_str(), &toTree[i++], (q+"_"+p+"/F").c_str());
             }
     } 
+	out_tree->Branch("production_mode", &indices[j++], "production_mode/I");
 
 }
 
@@ -239,7 +243,6 @@ std::vector<int> upToSeveralMothers(Pythia &pythia, int index)
 
 int cousin(Pythia &pythia, int index, int index_previous)
 {
-	std::cout << "cousing fkt index/prev" << index << "/" << index_previous << std::endl;
     if(pythia.event[index].motherList().size() == 0)
         return 0;
     if(pythia.event[index].daughterList().size()==1)
@@ -247,14 +250,13 @@ int cousin(Pythia &pythia, int index, int index_previous)
     else
     {
         auto daughters = pythia.event[index].daughterList();
-		std::cout << index << "," << index_previous << "daughters: ";
         for(auto d: daughters)
         {
-			std::cout << d << std::endl;
             if(d!= index_previous)
                 return d;
         }
     }
+	return 0;
 }
 
 int downToEnd(Pythia &pythia, int index)
@@ -276,9 +278,12 @@ std::vector<int> getJet_indices(Pythia &pythia, int i_lep, int genBosonIdx)
     std::vector<int> i_finalStateJets;
     for(auto parent: bosonParents)
     {
-        std::cout << "parent " << parent << std::endl;
         auto p = parent;
         int c;
+		for(size_t a=1; a<pythia.event[p].daughterList().size(); a++)
+		{
+        	i_finalStateJets.push_back(pythia.event[p].daughterList()[a]);
+		}
         c = cousin(pythia, pythia.event[p].mother1(), p);
         if(c!=0)
             i_finalStateJets.push_back(c);
@@ -296,7 +301,14 @@ std::vector<int> getJet_indices(Pythia &pythia, int i_lep, int genBosonIdx)
 	sort( i_finalStateJets.begin(), i_finalStateJets.end() );
     i_finalStateJets.erase( unique( i_finalStateJets.begin(), i_finalStateJets.end() ), i_finalStateJets.end() );
     for(auto j: i_finalStateJets)
-        std::cout << j << "/ " << downToEnd(pythia, j) << std::endl;
+	{
+		j = downToEnd(pythia, j);
+	}
+	// sort by pT
+    std::sort(std::begin(i_finalStateJets ), std::end(i_finalStateJets ), [&pythia](int a, int b) {return pythia.event[a].pT() > pythia.event[b].pT(); });
+	// eta cut
+	i_finalStateJets.erase(std::remove_if(i_finalStateJets.begin(), i_finalStateJets.end(), 
+                       [&pythia](int i) { return (std::abs(pythia.event[i].eta()) > 4.7); }), i_finalStateJets.end());
     return i_finalStateJets;
 }
 
@@ -338,11 +350,10 @@ int main( int argc, char * argv[] )
      
     int negTauIdx, posTauIdx;
     int negTauNeutrinoIdx, posTauNeutrinoIdx;
-//    int negLepNeutrinoIdx, posLepNeutrinoIdx;
-//
 
     Particle *posLepNeutrino, *posVisible;
     Particle *negLepNeutrino, *negVisible;
+	Particle *jet1, *jet2, *jet3, *jet4;
 
     int bosonIdx = 0;
     int genBosonIdx = 0;
@@ -350,6 +361,7 @@ int main( int argc, char * argv[] )
     std::vector<int> negTauVis, posTauVis;
     int tries = 0;
     bool writeOutput = true;
+	int production_mode;
     for ( int iEvent = 0; iEvent < nEvents; ++iEvent )
     {
         if (( tries%100 == 0) && writeOutput)
@@ -366,7 +378,7 @@ int main( int argc, char * argv[] )
         negTauVis.clear();
         posTauVis.clear();
         pythia.next();
-        std::cout << "\n Next Event "<< std::endl;
+//        std::cout << "\n Next Event "<< std::endl;
         // find the index if the first generated boson: genBosonIdx
         // find the index of the boson decaying to the two taus : bosonIdx
         for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
@@ -376,8 +388,6 @@ int main( int argc, char * argv[] )
             if (pythia.event[iPart].id() == 25) // Boson
                 bosonIdx = iPart;
         }
-        // get the indices of the final state jets
-        auto posTauGluonJet = getJet_indices(pythia, 0, genBosonIdx);
 
         //positive lepton
         posTauIdx = pythia.event[bosonIdx].daughter1();
@@ -424,10 +434,21 @@ int main( int argc, char * argv[] )
             --iEvent;
             continue;
         }
+        // get the indices of the final state jets
+        auto posTauGluonJet = getJet_indices(pythia, 0, genBosonIdx);
+		jet1 = posTauGluonJet.size() > 0 ? (new Particle(pythia.event[posTauGluonJet[0]])) : noParticle();
+		jet2 = posTauGluonJet.size() > 1 ? (new Particle(pythia.event[posTauGluonJet[1]])) : noParticle();
+		jet3 = posTauGluonJet.size() > 2 ? (new Particle(pythia.event[posTauGluonJet[2]])) : noParticle();
+		jet4 = posTauGluonJet.size() > 3 ? (new Particle(pythia.event[posTauGluonJet[3]])) : noParticle();
+
+		if((pythia.event[3].daughterList().size() == 3) && (pythia.event[4].daughterList().size() == 3))
+			production_mode = 2;
+		else
+			production_mode = 1;
         // writing out
         evt.next();
         evt.add(pythia.event[bosonIdx]);
-        for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
+/*        for (int iPart = 0; iPart < pythia.event.size(); ++iPart )
         {
            std::cout << iPart << " :\t id:" << pythia.event[iPart].id() << ", pt: " << pythia.event[iPart].pT() << ";" << pythia.event[iPart].m() << ", \t, daughters:";
            for(auto d:  pythia.event[iPart].daughterList())
@@ -451,7 +472,7 @@ int main( int argc, char * argv[] )
            for(auto d: pythia.event[iPart].motherList())
                 std::cout << d << ",";
             std::cout << "status/final: " << pythia.event[iPart].status() << "/" << pythia.event[iPart].isFinal() << std::endl;
-        }
+        }*/
 
         if(!inverted)
         {
@@ -471,10 +492,19 @@ int main( int argc, char * argv[] )
             evt.add(pythia.event[posTauNeutrinoIdx]);
             evt.add(posLepNeutrino);
         }
+		evt.add(jet1);
+		evt.add(jet2);
+		evt.add(jet3);
+		evt.add(jet4);
+		evt.add(production_mode);
         delete posLepNeutrino;
         delete posVisible;
         delete negLepNeutrino;
         delete negVisible;
+		delete jet1;
+		delete jet2;
+		delete jet3;
+		delete jet4;
 
         evt.fill();
     }

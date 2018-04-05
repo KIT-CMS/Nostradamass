@@ -8,7 +8,7 @@ from classes.JDLCreator import JDLCreator  # import the class to create and subm
 
 def main():
     """Submit a simple example job"""
-    out_dir = "/storage/b/friese/toymass7/"
+    out_dir = "/storage/b/friese/toymass9/"
     jobs = JDLCreator("condocker")  # Default (no Cloud Site supplied): Docker with SLC6 image
     # Some example sites:
     # site_name='ekpsupermachines'  "Super Machines" IO intesiv jobs
@@ -18,12 +18,9 @@ def main():
     jobs.memory = 2048  # Our regular 2048 MB per slot
     jobs.accounting_group = "cms.higgs"
 
-    # build list of arguments: 1,2,3,4,5
     arguments = []
-    #for masses in range(40,1000):
-    #for masses in range(1000,2000):# range(40,1000):
-    for masses in range(40,1000):
-        for seed in [3]:
+    for masses in range(100,1000):
+        for seed in [0]:
             for channel in ["tt", "mt", "et", "em", "mm", "ee"]:
                 for invert in ["true", "false"]:
                     arguments.append(" ".join([str(x) for x in [masses, seed, channel, invert, out_dir]]))
