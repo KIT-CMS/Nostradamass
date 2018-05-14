@@ -45,7 +45,7 @@ filenames = [
             "SUSYGluGluToHToTauTauM2900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM3200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
-folder = "/storage/b/friese/htautau/artus/2018-03-13_16-08_analysis/output/merged/"
+folder = "/storage/b/friese/htautau/artus/2018-05-07_17-35_analysis/output/merged/"
 
 new_filenames = [
             "GluGluH",
@@ -115,11 +115,12 @@ def gauss(x, *p):
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
 
-channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$'}
+channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$', "em" : r'$e \mu$'}
 binning = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
 model_path = sys.argv[2]
 outpath = sys.argv[3]
+n_jets = int(0)
 if not os.path.exists(outpath):
     os.makedirs(outpath)
 
@@ -157,9 +158,16 @@ for index, filename in enumerate(filenames):
             "met", "metphi",
             "metcov00", "metcov11", "metcov01", "metcov10"]
     gen_branches = ["genMetPt", "genMetPhi"]
-    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches+gen_branches).as_matrix()
+    jet_branches = []
+    for n_jet in range(n_jets):
+        print n_jet+1
+        jet_branches.append("jm_"+str(n_jet+1)) 
+        jet_branches.append("jpt_"+str(n_jet+1)) 
+        jet_branches.append("jeta_"+str(n_jet+1)) 
+        jet_branches.append("jphi_"+str(n_jet+1)) 
+    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches+gen_branches+jet_branches).as_matrix()
 
-    dim = 13
+    dim = 13 + 4 * n_jets
     n_events = in_array.shape[0]
     X = np.zeros([n_events, dim])
     svfit = np.zeros([n_events, 4])
@@ -198,6 +206,14 @@ for index, filename in enumerate(filenames):
 
         FakeMet[i,:] = np.array([fake_met.px, fake_met.py])
 
+        jets = []
+        for n_jet in range(n_jets):
+            jet = FourMomentum(a[23+n_jet*4+0],
+                               a[23+n_jet*4+1],
+                               a[23+n_jet*4+2],
+                               a[23+n_jet*4+3], cartesian=False)
+            jets+=[jet.e, jet.px, jet.py, jet.pz]
+
         #fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
         x = np.array([  lepton_1.e,
                         lepton_1.px,
@@ -212,7 +228,7 @@ for index, filename in enumerate(filenames):
                         met_resx,
                         met_resy,
                         met_cov[i,0]
-                        ])
+                        ]+jets)
         X[i,:] = x
         svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
         l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])

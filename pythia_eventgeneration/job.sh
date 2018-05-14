@@ -17,6 +17,7 @@ echo "in subshell"
 which python
 echo gfal-copy file:/$here/$testfile srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/store/user/rfriese/$OUT_DIR/$testfile
 gfal-copy file:/$here/$testfile srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/store/user/rfriese/$OUT_DIR/$testfile
+gfal-rm srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/store/user/rfriese/$OUT_DIR/$testfile
 )
 echo "out of subshell"
 which python

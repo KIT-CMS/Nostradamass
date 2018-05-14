@@ -36,8 +36,6 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     from keras.layers import LeakyReLU
     
 #    prelu = PReLU(alpha_initializer='zeros', alpha_regularizer=None, alpha_constraint=None, shared_axes=None)
-    leaky = LeakyReLU()
-    leaky.__name__ = 'leaky'
     from keras.optimizers import Adamax 
     optimizer = Adamax()
     #from keras.optimizers import RMSprop
@@ -99,10 +97,7 @@ if __name__ == '__main__':
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
     f, ext = os.path.splitext(in_filenames[0])
-    if len(in_filenames) and ext == ".pkl":
-        X, Y, B, L = load_from_pickle(in_filenames[0])
-    else:
-        X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
+    X, Y, B, L = load_from_root(in_filenames, channel, use_jets=0)
 
     model = train_model(X, Y, out_folder=out_folder, channel = channel)
     model.summary()

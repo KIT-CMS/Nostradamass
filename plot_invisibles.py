@@ -89,7 +89,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
             arange = [-200,600]
             if a == 13 or a == 17:
                 arange = [-5,600]
-        if channel == "em" or channel =="mt" or channel=="et":
+        if channel == "em" or channel =="mt" or channel=="et" or channel=="mm" or channel == "ee":
             arange = [-250,1000]
             if a == 13 or a == 17:
                 arange = [-5,800]
@@ -165,12 +165,12 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
         ax = fig.add_subplot(111)
         arange = None
         if a == 3:
-            arange = [-10,70]
+            arange = [-3,10]
     
-        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 150, normed=1, color="gray", histtype='step', range = arange, label='regressed tau1')
-        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 150, normed=1, color="green", histtype='step', range = arange, label='regressed tau2')
-        n, bins, patches = plt.hist(gentau_1_orig_phys[:,a], 150, normed=1, color="black", histtype='step', range = arange, label='target tau1')
-        n, bins, patches = plt.hist(gentau_2_orig_phys[:,a], 150, normed=1, color="orange", histtype='step', range = arange, label='target tau2')
+        n, bins, patches = plt.hist(tau_1_orig_phys[:,a], 50, normed=1, color="gray", histtype='step', range = arange, label='regressed tau1')
+        n, bins, patches = plt.hist(tau_2_orig_phys[:,a], 50, normed=1, color="green", histtype='step', range = arange, label='regressed tau2')
+        n, bins, patches = plt.hist(gentau_1_orig_phys[:,a], 50, normed=1, color="black", histtype='step', range = arange, label='target tau1')
+        n, bins, patches = plt.hist(gentau_2_orig_phys[:,a], 50, normed=1, color="orange", histtype='step', range = arange, label='target tau2')
         ax.set_xlabel(labels[a])
         ax.set_ylabel("arb. units")
         ax.set_title("Tau mass (" + channels[channel] + ")")
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     #if len(in_filenames) and ext == ".pkl":
     #    X, Y, B, L = load_from_pickle(in_filenames[0])
     #else:
-    X, Y, B, L = load_from_root(in_filenames, channel)#, out_folder = out_folder)
+    X, Y, B, L = load_from_root(in_filenames, channel, use_jets=0)#, out_folder = out_folder)
     #X, Y = add_pu_target(X, Y, 0.,  0, 0.)
     X, Y = add_pu_target(X, Y, 7., 23., 80.)
     from common_functions import i_inv2_py, i_inv2_px, i_inv2_pz, i_inv2_e

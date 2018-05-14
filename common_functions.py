@@ -19,7 +19,7 @@ def get_resolution_correlation(mass):
     return np.array([res_x, res_y, correlation])
 
 def add_pu_target(X, Y, offset, loc, correlation_std):
-    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+12])
+    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]++X.shape[1]+2])
     tmp_X = np.zeros([X.shape[0], X.shape[1]+3])
     smear = np.zeros([X.shape[0], 2])
     parameters = np.zeros([X.shape[0], 3])
@@ -64,15 +64,21 @@ def add_pu_target(X, Y, offset, loc, correlation_std):
     tmp_Y[:,1] = smear[:,1]
     tmp_Y[:,2] = tmp_X[:,8]
     tmp_Y[:,3] = tmp_X[:,9]
-    for i in range(8):
+    print 'newdim', X.shape[1]-2
+    for i in range(X.shape[1]-2):
         tmp_Y[:,i+4] = X[:,i]
     for i in range(Y.shape[1]):
         tmp_Y[:,i+12] = Y[:,i]
     return tmp_X, tmp_Y
 
-def load_from_root(in_filenames, channel, out_folder=None):
+def load_from_root(in_filenames, channel, use_jets=False):
     from root_pandas import read_root
     particle_postfix = ["B", "1", "2", "t1n", "l1n", "t2n", "l2n"]
+    jet_range = range(1, use_jets+1, 1)
+    if use_jets:
+        for ji in jet_range:
+            particle_postfix.append("j" + str(ji))
+        
     particle_prefix = ["e", "px", "py", "pz"]
     branches = []
     dims = 0
@@ -87,44 +93,56 @@ def load_from_root(in_filenames, channel, out_folder=None):
     n_events = in_array.shape[0]
     print n_events, "loaded!"
     print "allocating memory" 
-    X = np.zeros([n_events, 10])
+    X = np.zeros([n_events, 10 + 4*use_jets])
     Y = np.zeros([n_events, 9])
     B = np.zeros([n_events, 4])
     L = np.zeros([n_events, 4])
     I1 = np.zeros([n_events, 4])
     I2 = np.zeros([n_events, 4])
+    Jets = []
+    indices = {}
+    index_names = ["boson", "lepton_1", "lepton_2", "tau1tn", "tau1ln", "tau2tn", "tau2ln"]
+    if use_jets:
+        for ji in jet_range:
+            Jets.append(np.zeros([n_events,4]))
+            index_names.append("j" + str(ji))
 
     dimrange = range(dims)
-  
-
-    boson, lepton_1, lepton_2, tau1tn, tau1ln, tau2tn, tau2ln = [range(i*4,i*4+4) for i in range(7)]
-
+    for index, name in enumerate(index_names):
+        indices[name] = range(index*4,index*4+4)
     print "Converting to required formats..."
     for i in range(4):
-        B[:,i] = in_array[:,boson[i]]
+        B[:,i] = in_array[:,indices["boson"][i]]
 
     Y[:,0] = np.sqrt( np.square(B[:,0]) - np.square(B[:,1]) - np.square(B[:,2]) - np.square(B[:,3])) 
     print "Leptons"
 
     for i in range(4):
-        L[:,i] = in_array[:,lepton_1[i]] + in_array[:,lepton_2[i]]
-        X[:,i] = in_array[:,lepton_1[i]]
-        X[:,i+4] = in_array[:,lepton_2[i]]
+        L[:,i] = in_array[:,indices["lepton_1"][i]] + in_array[:,indices["lepton_2"][i]]
+        X[:,i] = in_array[:,indices["lepton_1"][i]]
+        X[:,i+4] = in_array[:,indices["lepton_2"][i]]
+
+    # jets
+    for jet in jet_range:
+        for i in range(4):
+            Jets[jet-1][:,i] = in_array[:,indices['j'+str(jet)][i]]
+            X[:,10+4*(jet-1)+i] = in_array[:,indices['j'+str(jet)][i]]
+
     print "Neutrinos"
 
     if (channel[0]=="t"):
         for i in range(4):
-            I1[:,i] = in_array[:,tau1tn[i]]
+            I1[:,i] = in_array[:,indices["tau1tn"][i]]
     else:
         for i in range(4):
-            I1[:,i] = in_array[:,tau1tn[i]]+in_array[:,tau1ln[i]]
+            I1[:,i] = in_array[:,indices["tau1tn"][i]]+in_array[:,indices["tau1ln"][i]]
 
     if (channel[1]=="t"):
         for i in range(4):
-            I2[:,i] = in_array[:,tau2tn[i]]
+            I2[:,i] = in_array[:,indices["tau2tn"][i]]
     else:
         for i in range(4):
-            I2[:,i] = in_array[:,tau2tn[i]]+in_array[:,tau2ln[i]]
+            I2[:,i] = in_array[:,indices["tau2tn"][i]]+in_array[:,indices["tau2ln"][i]]
     X[:,8] = I1[:,1] + I2[:,1]
     X[:,9] = I1[:,2] + I2[:,2]
 
@@ -132,14 +150,6 @@ def load_from_root(in_filenames, channel, out_folder=None):
         Y[:,i+1] = I1[:,i]
         Y[:,i+5] = I2[:,i]
 
-    print "Conversion done!"        
-    if out_folder != None:
-        cache_output = open(os.path.join(out_folder, 'cache.pkl'), 'wb')
-        pickle.dump(X, cache_output)
-        pickle.dump(Y, cache_output)
-        pickle.dump(B, cache_output)
-        pickle.dump(L, cache_output)
-        cache_output.close()
     return X, Y, B, L
 
 
