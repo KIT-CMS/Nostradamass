@@ -213,6 +213,18 @@ def original_tau(te_i, tx_i, ty_i, tz_i, ne_i, nx_i, ny_i, nz_i, X, Y):
 
     return tau_orig_phys
 
+def original_tau_cart(te_i, tx_i, ty_i, tz_i, ne_i, nx_i, ny_i, nz_i, X, Y):
+    tau_orig_cartesian = [ FourMomentum( X[i,te_i] + Y[i,ne_i],
+                                 X[i,tx_i] + Y[i,nx_i],
+                                 X[i,ty_i] + Y[i,ny_i],
+                                 X[i,tz_i] + Y[i,nz_i]) for i in range(X.shape[0])]
+    tau_orig_np = np.array( [ [tau_orig_cartesian[i].e,
+                                 tau_orig_cartesian[i].px, 
+                                 tau_orig_cartesian[i].py,
+                                 tau_orig_cartesian[i].pz] for i in range(len(tau_orig_cartesian))])
+
+    return tau_orig_np
+
 from losses import i_inv1_e, i_inv1_px, i_inv1_py, i_inv1_pz 
 from losses import i_inv2_e, i_inv2_px, i_inv2_py, i_inv2_pz 
 from losses import i_tau1_e, i_tau1_px, i_tau1_py, i_tau1_pz

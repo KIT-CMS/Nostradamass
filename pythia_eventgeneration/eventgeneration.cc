@@ -45,7 +45,7 @@ void configure(char * argv[], Pythia& pythia, char flavour1, char flavour2, bool
     pythia.readString("HiggsSM:gg2H = on");
     pythia.readString("HiggsSM:ff2Hff(t:ZZ) = on");
     pythia.readString("HiggsSM:ff2Hff(t:WW)  = on");
-    pythia.readString("Main:numberOfEvents = 10000");
+    pythia.readString("Main:numberOfEvents = 1000");
     pythia.readString("Random:setSeed = true");
     pythia.readString("ProcessLevel:resonanceDecays = on");
     pythia.readString("PartonLevel:all = on");// if off, generation stops before parton level events (partons are quarks and gluons)

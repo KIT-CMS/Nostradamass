@@ -273,12 +273,12 @@ for index, filename in enumerate(filenames):
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
                              regressed_physfourvectors[i,2] - gen[i, 2],
-                             regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<200  ])
+                             regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<1000  ])
 
     diff_svfit = np.array([  [svfit[i,0] - gen[i, 0],
                               svfit[i,1] - gen[i, 1],
                               svfit[i,2] - gen[i, 2],
-                              svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<200])
+                              svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<1000])
 
     met_uncs[process] = met_unc
     met_covs[process] = met_cov
@@ -311,12 +311,14 @@ for index, filename in enumerate(filenames):
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
         n, bins, patches = plt.hist(gen[:,a], bins=binning[index], color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
         n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+     #   n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.5, range=ranges[a], histtype='step', label='diffnn')
         n, bins, patches = plt.hist(svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+    #    n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='diff SVFit', linestyle='dotted')
 #        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
 #        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
         #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
-        print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.std(diff_nn[:,a])), "\\\\"
-        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_svfit[:,a])), " & ", "{:2.2f}".format(np.std(diff_svfit[:,a])), "\\\\ \hine"
+        print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)), "\\\\"
+        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_svfit[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)), "\\\\ \hline"
 
 #        if a == 0:
 #            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
@@ -332,9 +334,9 @@ for index, filename in enumerate(filenames):
 #            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
         means_nn[a].append(np.mean(diff_nn[:,a]))
-        widths_nn[a].append(np.std(diff_nn[:,a]))
+        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2))
         means_sv[a].append(np.mean(diff_svfit[:,a]))
-        widths_sv[a].append(np.std(diff_svfit[:,a]))
+        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2))
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("# events")
@@ -347,65 +349,65 @@ for index, filename in enumerate(filenames):
         plt.close()
 
 
-# compare true fake met with estimation
-    for a in range(2):
-        fig = plt.figure(figsize=(3,3))
-        ax = fig.add_subplot(111)
-        titles = [ r'$p_x$', r'$p_y$']
-        ax.set_title(process + " fakeMet " + titles[a] )
-        n, bins, patches = plt.hist(FakeMet[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
-#        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
-        # fit
-        from scipy.optimize import curve_fit
-        p0 = [1000., 0., 50., 100., 0., 100.]
-        hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
-        bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
-        coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0, bounds=([-1000., -100., -0., -10000., -100., -0.],[10000., 1000., 1000., 10000., 1000, 1000.]))
-        hist_fit = gauss(bin_centres, *coeff)
-        plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
-       # print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
-       # print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
-#        if coeff[2] < coeff[5]:
-#            f.write(";".join([str(masses[index])] + [str(b) for b in coeff]))
-#        else:
-#            f.write(";".join([str(masses[index])] + [str(coeff[b]) for b in [3,4,5]]+ [str(coeff[b]) for b in [0,1,2]]))
-#        f.write("\n")
-        plt.tight_layout()
-        plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".pdf"))
-        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".png"))
+## compare true fake met with estimation
+#    for a in range(2):
+#        fig = plt.figure(figsize=(3,3))
+#        ax = fig.add_subplot(111)
+#        titles = [ r'$p_x$', r'$p_y$']
+#        ax.set_title(process + " fakeMet " + titles[a] )
+#        n, bins, patches = plt.hist(FakeMet[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
+##        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
+#        # fit
+#        from scipy.optimize import curve_fit
+#        p0 = [1000., 0., 50., 100., 0., 100.]
+#        hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
+#        bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+#        coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0, bounds=([-1000., -100., -0., -10000., -100., -0.],[10000., 1000., 1000., 10000., 1000, 1000.]))
+#        hist_fit = gauss(bin_centres, *coeff)
+#        plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
+#       # print process, " ", coeff[0], ' Fitted mean1 = ', coeff[1], ', Fitted standard deviation1 = ', coeff[2]
+#       # print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
+##        if coeff[2] < coeff[5]:
+##            f.write(";".join([str(masses[index])] + [str(b) for b in coeff]))
+##        else:
+##            f.write(";".join([str(masses[index])] + [str(coeff[b]) for b in [3,4,5]]+ [str(coeff[b]) for b in [0,1,2]]))
+##        f.write("\n")
+#        plt.tight_layout()
+#        plt.legend(loc='best')
+#        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".pdf"))
+#        plt.savefig(os.path.join(outpath, process+"-FakeMet"+str(a)+".png"))
 
 #off-diag elements
-    for a in range(2):
-        fig = plt.figure(figsize=(3,3))
-        ax = fig.add_subplot(111)
-        titles = [ r'01', r'10']
-        ax.set_title(process + " met cov " + titles[a] )
-        n, bins, patches = plt.hist(met_cov[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
-#        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
-        # fit
-        #from scipy.optimize import curve_fit
-        #p0 = [1000., 0., 50., 100., 0., 100.]
-        #hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
-        #bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
-        #print bin_edges
-        #print hist
-        #coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
-        #hist_fit = gauss(bin_centres, *coeff)
-        #plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
-       # print process, " metcov ", a, " ",  np.std(met_cov[:,a])
-        #print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
-        #f = open('coeff.txt', 'a')
-        #if coeff[2] < coeff[5]:
-        #    f.write(";".join([str(masses[index])] + [str(a) for a in coeff]))
-        #else:
-        #    f.write(";".join([str(masses[index])] + [str(coeff[a]) for a in [3,4,5]]+ [str(coeff[a]) for a in [0,1,2]]))
-        #f.write("\n")
-        #f.close()
-        plt.tight_layout()
-        plt.legend(loc='best')
-        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".pdf"))
-        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".png"))
+#    for a in range(2):
+#        fig = plt.figure(figsize=(3,3))
+#        ax = fig.add_subplot(111)
+#        titles = [ r'01', r'10']
+#        ax.set_title(process + " met cov " + titles[a] )
+#        n, bins, patches = plt.hist(met_cov[:,a], bins=100, color=colors["color_true"], alpha=0.75, range=[-150,300], histtype='step', label='True')
+##        n, bins, patches = plt.hist(scaled_Y[:,a], bins=100, color=colors["color_nn"], alpha=0.75, range=[-150,300], histtype='step', label='Regressed')
+#        # fit
+#        #from scipy.optimize import curve_fit
+#        #p0 = [1000., 0., 50., 100., 0., 100.]
+#        #hist, bin_edges = np.histogram(FakeMet[:,a],bins=100, range=[-150,300])
+#        #bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+#        #print bin_edges
+#        #print hist
+#        #coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
+#        #hist_fit = gauss(bin_centres, *coeff)
+#        #plt.plot(bin_centres, hist_fit, label='Gaussian Fit', linestyle='dotted')
+#       # print process, " metcov ", a, " ",  np.std(met_cov[:,a])
+#        #print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
+#        #f = open('coeff.txt', 'a')
+#        #if coeff[2] < coeff[5]:
+#        #    f.write(";".join([str(masses[index])] + [str(a) for a in coeff]))
+#        #else:
+#        #    f.write(";".join([str(masses[index])] + [str(coeff[a]) for a in [3,4,5]]+ [str(coeff[a]) for a in [0,1,2]]))
+#        #f.write("\n")
+#        #f.close()
+#        plt.tight_layout()
+#        plt.legend(loc='best')
+#        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".pdf"))
+#        plt.savefig(os.path.join(outpath, process+"-metcov"+str(a)+".png"))
 
 
 #    for a in range(4):
@@ -544,8 +546,8 @@ for a in [3]:
     plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
     plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".png"))
     plt.close()
-"""
 
+"""
 for k, v in met_uncs.iteritems():
     # fake met / vgl mit cov matrix
     for a in [0,1]:
@@ -577,3 +579,4 @@ for k, v in met_uncs.iteritems():
   #      print process, " pt100 ", np.mean(pt100), ' median', np.median(pt100), ", toy resolution: ", np.std(pt100)
   #      print process, " pt1000 ", np.mean(ptInf), ' median', np.median(ptInf), ", toy resolution: ", np.std(ptInf)
 f.close()
+"""
