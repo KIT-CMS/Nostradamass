@@ -14,7 +14,7 @@ from plot_invisibles import colors
 import time
 
 filenames = [
-            "GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
+#            "GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
             "SUSYGluGluToHToTauTauM80_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM90_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM100_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
@@ -43,12 +43,12 @@ filenames = [
             "SUSYGluGluToHToTauTauM2300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM2600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
             "SUSYGluGluToHToTauTauM2900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM3200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
+            "SUSYGluGluToHToTauTauM3200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8"]
+ #           "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
 folder = "/storage/b/friese/htautau/artus/2018-05-07_17-35_analysis/output/merged/"
 
 new_filenames = [
-            "GluGluH",
+#            "GluGluH",
             "SUSY80",
             "SUSY90",
             "SUSY100",
@@ -77,9 +77,9 @@ new_filenames = [
             "SUSY2300",
             "SUSY2600",
             "SUSY2900",
-            "SUSY3200",
-            "VBFH"]
-masses = [  125,
+            "SUSY3200"]
+ #           "VBFH"]
+masses = [  #125,
             80,
             90,
             100,
@@ -108,7 +108,7 @@ masses = [  125,
             2300,
             2600,
             2900,
-            3200, 125]
+            3200]#], 125]
 masses_sv = [a + 5 for a in masses]
 def gauss(x, *p):
     A, mu, sigma, A2, mu2, sigma2 = p
@@ -116,11 +116,11 @@ def gauss(x, *p):
 
 
 channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$', "em" : r'$e \mu$'}
-binning = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
+#binnings = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
+binnings = [50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
 model_path = sys.argv[2]
 outpath = sys.argv[3]
-n_jets = int(0)
 if not os.path.exists(outpath):
     os.makedirs(outpath)
 
@@ -145,29 +145,39 @@ def twoD_Gaussian((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
 def fix_between(number, minimum, maximum):
     return min(max(number, minimum), maximum)
 
-f = open('coeff.txt', 'w')
-for index, filename in enumerate(filenames):
+#f = open('coeff.txt', 'w')
+#for index, filename in enumerate(filenames):
+
+#elements = len(filenames)
+elements = 5
+filenames = filenames[0:elements]
+new_filenames = new_filenames[0:elements]
+binnings = binnings[0:elements]
+masses = masses[0:elements]
+masses_sv = masses_sv[0:elements]
+
+for filename, new_filename, binning, mass in zip(filenames, new_filenames, binnings, masses):
     runtime = 0
     all_events = 0
     from root_pandas import read_root
-    process = new_filenames[index]
+    process = new_filename
     branches = ["genBosonMass", "genBosonPt", "genBosonEta", "genBosonPhi",
             "m_sv", "pt_sv", "eta_sv", "phi_sv",
             "m_1", "pt_1", "eta_1", "phi_1",
             "m_2", "pt_2", "eta_2", "phi_2",
             "met", "metphi",
             "metcov00", "metcov11", "metcov01", "metcov10"]
-    gen_branches = ["genMetPt", "genMetPhi"]
-    jet_branches = []
-    for n_jet in range(n_jets):
-        print n_jet+1
-        jet_branches.append("jm_"+str(n_jet+1)) 
-        jet_branches.append("jpt_"+str(n_jet+1)) 
-        jet_branches.append("jeta_"+str(n_jet+1)) 
-        jet_branches.append("jphi_"+str(n_jet+1)) 
-    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches+gen_branches+jet_branches).as_matrix()
+#    gen_branches = ["genMetPt", "genMetPhi"]
+#    jet_branches = []
+#    for n_jet in range(n_jets):
+#        print n_jet+1
+#        jet_branches.append("jm_"+str(n_jet+1)) 
+#        jet_branches.append("jpt_"+str(n_jet+1)) 
+#        jet_branches.append("jeta_"+str(n_jet+1)) 
+#        jet_branches.append("jphi_"+str(n_jet+1)) 
+    in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches).as_matrix()
 
-    dim = 13 + 4 * n_jets
+    dim = 13 
     n_events = in_array.shape[0]
     X = np.zeros([n_events, dim])
     svfit = np.zeros([n_events, 4])
@@ -196,23 +206,22 @@ for index, filename in enumerate(filenames):
         lepton_1 = FourMomentum(a[8], a[9], a[10], a[11], cartesian=False)
         lepton_2 = FourMomentum(a[12], a[13], a[14], a[15], cartesian=False)
         met = FourMomentum(0, a[16], 0, a[17], False)
-        fake_met = FourMomentum(0, a[22], 0, a[21], False)
+        #fake_met = FourMomentum(0, a[22], 0, a[21], False)
 
         
-        met_cov[i,:] = np.array([a[20], a[21]])
+        #met_cov[i,:] = np.array([a[20], a[21]])
         met_unc[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
         met_resx = np.sqrt(a[18])
         met_resy = np.sqrt(a[19])
 
-        FakeMet[i,:] = np.array([fake_met.px, fake_met.py])
+#        FakeMet[i,:] = np.array([fake_met.px, fake_met.py])
 
-        jets = []
-        for n_jet in range(n_jets):
-            jet = FourMomentum(a[23+n_jet*4+0],
-                               a[23+n_jet*4+1],
-                               a[23+n_jet*4+2],
-                               a[23+n_jet*4+3], cartesian=False)
-            jets+=[jet.e, jet.px, jet.py, jet.pz]
+#        for n_jet in range(n_jets):
+#            jet = FourMomentum(a[23+n_jet*4+0],
+#                               a[23+n_jet*4+1],
+#                               a[23+n_jet*4+2],
+#                               a[23+n_jet*4+3], cartesian=False)
+#            jets+=[jet.e, jet.px, jet.py, jet.pz]
 
         #fake_met_cart[line,:] = np.array([a[-2], a[-1], 0, 0])
         x = np.array([  lepton_1.e,
@@ -228,7 +237,7 @@ for index, filename in enumerate(filenames):
                         met_resx,
                         met_resy,
                         met_cov[i,0]
-                        ]+jets)
+                        ])
         X[i,:] = x
         svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
         l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
@@ -259,10 +268,10 @@ for index, filename in enumerate(filenames):
   #  print pcov[3,3], " ", pcov[3,4]
   #  print pcov[4,3], " ", pcov[4,4]
   #  print pcov
-    cov_m = ( np.cov(FakeMet[:,0], FakeMet[:,1]) )
-    print cov_m
-    f.write(','.join([process, str(cov_m[0,0]), str(cov_m[1,1]), str(cov_m[1,0])]))
-    f.write("\n")
+#    cov_m = ( np.cov(FakeMet[:,0], FakeMet[:,1]) )
+#    print cov_m
+#    f.write(','.join([process, str(cov_m[0,0]), str(cov_m[1,1]), str(cov_m[1,0])]))
+#    f.write("\n")
 
 
     all_events += X.shape[0]
@@ -273,16 +282,16 @@ for index, filename in enumerate(filenames):
     diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
                              regressed_physfourvectors[i,1] - gen[i, 1],
                              regressed_physfourvectors[i,2] - gen[i, 2],
-                             regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<1000  ])
+                             regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<2*gen[i, 3]  ])
 
     diff_svfit = np.array([  [svfit[i,0] - gen[i, 0],
                               svfit[i,1] - gen[i, 1],
                               svfit[i,2] - gen[i, 2],
-                              svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<1000])
+                              svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<2*gen[i, 3]])
 
-    met_uncs[process] = met_unc
-    met_covs[process] = met_cov
-    pts[process] = pt
+#    met_uncs[process] = met_unc
+#    met_covs[process] = met_cov
+#    pts[process] = pt
     # pt-dependency
 #    for a in [0]:
 #        pt = np.sqrt(np.square(L[:,1]) + np.square(L[:,2]))
@@ -307,12 +316,12 @@ for index, filename in enumerate(filenames):
         ranges = [[0,500],
             [-6,10],
             [-4,4],
-            [0,masses[index]*3]]
+            [0,mass*3]]
         titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
-        n, bins, patches = plt.hist(gen[:,a], bins=binning[index], color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
-        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+        n, bins, patches = plt.hist(gen[:,a], bins=binning, color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
+        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
      #   n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.5, range=ranges[a], histtype='step', label='diffnn')
-        n, bins, patches = plt.hist(svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+        n, bins, patches = plt.hist(svfit[:,a], bins=binning, color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
     #    n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='diff SVFit', linestyle='dotted')
 #        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
 #        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
@@ -333,10 +342,11 @@ for index, filename in enumerate(filenames):
 #            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 #            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-        means_nn[a].append(np.mean(diff_nn[:,a]))
-        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2))
-        means_sv[a].append(np.mean(diff_svfit[:,a]))
-        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2))
+        factor = mass if a==3 else 1
+        means_nn[a].append(np.mean(diff_nn[:,a])/ factor)
+        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)/factor)
+        means_sv[a].append(np.mean(diff_svfit[:,a])/factor)
+        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)/factor)
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("# events")
@@ -478,74 +488,96 @@ for index, filename in enumerate(filenames):
     #print "runtime", runtime
     #print "events", all_events
     #print "events/s", all_events/float(runtime)
-"""
 for a in range(4):
-    fig = plt.figure(figsize=(3,3))
+    fig = plt.figure(figsize=(6,3))
     ax = fig.add_subplot(111)
-    ranges = [[0,500],
-        [-8,8],
-        [-4,4],
-        [0,3300]]
-    yranges = [[-60,30],
-        [-1.5,0.8],
-        [-4,2],
-        [-150,80]]
-    titles = [ r'Reconstructed $p_T$ (GeV)', r'Reconstructed $\eta$',r' Reconstructed $\phi$',r'Reconstructed mass $m$ (GeV)',]
-    ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
-    ax.errorbar(masses_sv, means_sv[a], yerr=widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
+    ranges = [
+        [70,3500],
+        [70,3500],
+        [70,3500],
+        [70,3500]]
+    yranges = [[-40,40],
+        [-0.5,0.5],
+        [-1.4,1.4],
+        [-0.4,0.4]]
+    major_yticks = [[-40,-20,0,20,40],
+                    [-0.5,-0.25,0,0.25,0.5],
+                    [-1.4,-0.7,0,0.7,1.4],
+                    [-0.4,-0.2,0,0.2,0.4]]
+    minor_yticks = [[-30,-10,10,30],
+                    [-0.375,-0.125,0.125,0.375],
+                    [-1.05,-0.35,0.35,1.05],
+                    [-0.3,-0.1,0.1,0.3]]
+    titles = [ r'$\left< p_T^N - p_T^H \right>$', r'$\left< \eta_N - \eta_H \right>$',r' $\left< \phi_N - \phi_H \right>$',r' $\left<\frac{ m_N - m_H}{m_H}\right>$',]
+    #ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
+    #ax.errorbar(masses_sv, means_sv[a], yerr=widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
+    ax.plot(masses, means_nn[a], 'k', color=colors["color_nn"], marker='.', markersize=10, label = 'Nostradamass')
+    ax.fill_between(masses, np.array(means_nn[a])-np.array(widths_nn[a]), np.array(means_nn[a])+np.array(widths_nn[a]), alpha=0.2, edgecolor=colors["color_nn"], facecolor=colors["color_nn"], linewidth=0, linestyle='dashdot', antialiased=False)
+    ax.plot(masses, means_sv[a], 'k', color=colors["color_svfit"], marker='.', markersize=10, label='SVFit')
+    ax.fill_between(masses, np.array(means_sv[a])-np.array(widths_sv[a]), np.array(means_sv[a])+np.array(widths_sv[a]), alpha=0.2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linewidth=0, linestyle='dashdot', antialiased=False)
+
 
     ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
     ax.set_ylabel(titles[a])
-    ax.set_title("Resolution (" + channel_name[channel] + ")")
+    ax.set_title("rel. Resolution (" + channel_name[channel] + ")")
+    ax.set_xlim(ranges[a])
+    ax.set_xscale('log')
+    ax.set_xticks([100,200,400,1000,2000,3000])
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.grid(color='gray', linestyle='-', linewidth=1, which='major')
+    ax.grid(color='gray', linestyle='-',alpha=0.3, linewidth=1, which='minor')
     ax.set_ylim(yranges[a])
 
-    plt.legend(loc=3)
+    ax.set_yticks(major_yticks[a])
+    ax.set_yticks(minor_yticks[a],minor=True)
+
+    plt.legend(loc=3, ncol=2)
     plt.tight_layout()
     plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".pdf"))
     plt.savefig(os.path.join(outpath, "resolution-"+str(a)+".png"))
     plt.close()
 
 
-
-factors_nn = np.array(masses) / (np.array(masses)+np.array(means_nn))
-factors_sv = np.array(masses) / (np.array(masses)+np.array(means_sv))
-
-mod_means_nn = (factors_nn *  (np.array(masses)+np.array(means_nn))) - np.array(masses)
-mod_means_sv = (factors_sv *  (np.array(masses)+np.array(means_sv))) - np.array(masses)
-
-mod_widths_nn = factors_nn * np.array(widths_nn)
-mod_widths_sv = factors_sv * np.array(widths_sv)
-
-print 'Nostradamass', mod_widths_nn
-print 'SVFit', mod_widths_sv
-
-print 'diff', mod_widths_sv / mod_widths_nn
-
-for a in [3]:
-    fig = plt.figure(figsize=(3,3))
-    ax = fig.add_subplot(111)
-    ranges = [[0,500],
-        [-8,8],
-        [-4,4],
-        [0,3300]]
-    yranges = [[-60,30],
-        [-1.5,0.8],
-        [-4,2],
-        [-150,100]]
-    titles = [ r'Reconstructed $p_T$ (GeV)', r'Reconstructed $\eta$',r' Reconstructed $\phi$',r'Reconstructed mass $m$ (GeV)',]
-    ax.errorbar(masses, mod_means_nn[a], yerr=mod_widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
-    ax.errorbar(masses_sv, mod_means_sv[a], yerr=mod_widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
-
-    ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
-    ax.set_ylabel(titles[a])
-    ax.set_title("Corrected Res. (" + channel_name[channel] + ")")
-    ax.set_ylim(yranges[a])
-
-    plt.legend(loc=3)
-    plt.tight_layout()
-    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
-    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".png"))
-    plt.close()
+# plots with correction factors
+#factors_nn = np.array(masses) / (np.array(masses)+np.array(means_nn))
+#factors_sv = np.array(masses) / (np.array(masses)+np.array(means_sv))
+#
+#mod_means_nn = (factors_nn *  (np.array(masses)+np.array(means_nn))) - np.array(masses)
+#mod_means_sv = (factors_sv *  (np.array(masses)+np.array(means_sv))) - np.array(masses)
+#
+#mod_widths_nn = factors_nn * np.array(widths_nn)
+#mod_widths_sv = factors_sv * np.array(widths_sv)
+#
+#print 'Nostradamass', mod_widths_nn
+#print 'SVFit', mod_widths_sv
+#
+#print 'diff', mod_widths_sv / mod_widths_nn
+#
+#for a in [3]:
+#    fig = plt.figure(figsize=(3,3))
+#    ax = fig.add_subplot(111)
+#    ranges = [[0,500],
+#        [-8,8],
+#        [-4,4],
+#        [0,3300]]
+#    yranges = [[-60,30],
+#        [-1.5,0.8],
+#        [-4,2],
+#        [-150,100]]
+#    titles = [ r'Reconstructed $p_T$ (GeV)', r'Reconstructed $\eta$',r' Reconstructed $\phi$',r'Reconstructed mass $m$ (GeV)',]
+#    ax.errorbar(masses, mod_means_nn[a], yerr=mod_widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
+#    ax.errorbar(masses_sv, mod_means_sv[a], yerr=mod_widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
+#
+#    ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
+#    ax.set_ylabel(titles[a])
+#    ax.set_title("Corrected Res. (" + channel_name[channel] + ")")
+#    ax.set_ylim(yranges[a])
+#
+#    plt.legend(loc=3)
+#    plt.tight_layout()
+#    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".pdf"))
+#    plt.savefig(os.path.join(outpath, "corrected-resolution-"+str(a)+".png"))
+#    plt.close()
 
 """
 for k, v in met_uncs.iteritems():

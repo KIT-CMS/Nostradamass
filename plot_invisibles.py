@@ -292,7 +292,7 @@ if __name__ == '__main__':
     X, Y, B, L = load_from_root(in_filenames, channel, use_jets=0)#, out_folder = out_folder)
     #X, Y = add_pu_target(X, Y, 0.,  0, 0.)
     X, Y = add_pu_target(X, Y, 7., 23., 80.)
-    regressed_Y = predict(model_path, X, channel, Y)
+    regressed_Y = predict(model_path, X, channel)
     #regressed_Y[:,13] = Y[:,13] 
     #regressed_Y[:,14] = Y[:,14] 
     #regressed_Y[:,15] = Y[:,15] 
