@@ -18,7 +18,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     import tensorflow as tf
     from keras.layers import GaussianNoise
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.8
+    config.gpu_options.per_process_gpu_memory_fraction = 0.45
     sess = tf.Session(config=config)
     set_session(sess)
     kernel_initializer = "random_uniform"
@@ -33,6 +33,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
         from losses import loss_semi_leptonic as loss
     else:
         from losses import loss_fully_leptonic as loss
+    from losses import loss_M, loss_PT, loss_dmTau, loss_dx
     
     from keras.optimizers import Adamax 
     optimizer = Adamax()
@@ -43,9 +44,9 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
         for l in range(9):
 #            model.add(Dense(500-l*50, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
             model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-#            model.add(Dropout(0.1-0.01*l))
+#            model.add(Dropout(0.05))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=loss, optimizer=optimizer)
+        model.compile(loss=loss, optimizer=optimizer, metrics = [loss_M, loss_PT, loss_dmTau, loss_dx])
     else:
         model = load_model(previous_model)
 
@@ -54,11 +55,11 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     from keras.callbacks import EarlyStopping
     from keras.callbacks import TensorBoard
     #tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
-    early_stopping = EarlyStopping(patience = 20)
+    early_stopping = EarlyStopping(patience = 25)
 
     from sklearn.model_selection import train_test_split
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.05, random_state=42)
     tmp_X = X_train 
 
     for i in range(1):
@@ -70,7 +71,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                                             mode='auto',
                                             period=1)
         model.fit(tmp_X, Y_train,
-                    batch_size=100000,
+                    batch_size=10000,
                     epochs=2000,
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])

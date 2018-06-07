@@ -115,7 +115,7 @@ def gauss(x, *p):
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
 
-channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$', "em" : r'$e \mu$'}
+channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$', "em" : r'$e \mu$', "et" : r'$e \tau$'}
 #binnings = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 binnings = [50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
@@ -125,9 +125,11 @@ if not os.path.exists(outpath):
     os.makedirs(outpath)
 
 means_nn = [[],[], [], []]
-widths_nn = [[],[], [], []]
+widths_nn_upper = [[],[], [], []]
+widths_nn_lower = [[],[], [], []]
 means_sv = [[],[], [], []]
-widths_sv = [[],[], [], []]
+widths_sv_upper = [[],[], [], []]
+widths_sv_lower = [[],[], [], []]
 
 met_uncs = {}
 met_covs = {}
@@ -148,8 +150,8 @@ def fix_between(number, minimum, maximum):
 #f = open('coeff.txt', 'w')
 #for index, filename in enumerate(filenames):
 
-#elements = len(filenames)
-elements = 5
+elements = len(filenames)
+#elements = 3
 filenames = filenames[0:elements]
 new_filenames = new_filenames[0:elements]
 binnings = binnings[0:elements]
@@ -284,7 +286,7 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
                              regressed_physfourvectors[i,2] - gen[i, 2],
                              regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<2*gen[i, 3]  ])
 
-    diff_svfit = np.array([  [svfit[i,0] - gen[i, 0],
+    diff_sv = np.array([  [svfit[i,0] - gen[i, 0],
                               svfit[i,1] - gen[i, 1],
                               svfit[i,2] - gen[i, 2],
                               svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<2*gen[i, 3]])
@@ -327,7 +329,7 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
 #        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
         #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
         print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)), "\\\\"
-        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_svfit[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)), "\\\\ \hline"
+        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_sv[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_sv[:,a]))**2)), "\\\\ \hline"
 
 #        if a == 0:
 #            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
@@ -342,11 +344,27 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
 #            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 #            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
 
-        factor = mass if a==3 else 1
+        factor = mass*2.0 if a==3 else 2.0
+
+
+#       split in upper and lower widths
         means_nn[a].append(np.mean(diff_nn[:,a])/ factor)
-        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)/factor)
-        means_sv[a].append(np.mean(diff_svfit[:,a])/factor)
-        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)/factor)
+        means_sv[a].append(np.mean(diff_sv[:,a])/factor)
+
+
+        #widths_nn_upper[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_nn[:,a] > 0, diff_nn[:,a]))])))/factor)
+        widths_nn_upper[a].append((np.sqrt(np.sum(np.square(np.extract(diff_nn[:,a] > 0, diff_nn[:,a])))/np.extract(diff_nn[:,a] > 0, diff_nn[:,a]).size))/factor)
+        widths_nn_lower[a].append((np.sqrt(np.sum(np.square(np.extract(diff_nn[:,a] < 0, diff_nn[:,a])))/np.extract(diff_nn[:,a] < 0, diff_nn[:,a]).size))/factor)
+        widths_sv_upper[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] > 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] > 0, diff_sv[:,a]).size))/factor)
+        widths_sv_lower[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] < 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] < 0, diff_sv[:,a]).size))/factor)
+#        widths_nn_lower[a].append(np.sqrt(np.sum(np.square([abs()])))/factor)
+        #widths_sv_upper[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_sv[:,a] > 0, diff_sv[:,a]))])))/factor)
+        #widths_sv_lower[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_sv[:,a] < 0, diff_sv[:,a]))])))/factor)
+  #      widths_nn_lower[a].append(np.mean([abs(np.extract(diff_nn[:,a] < 0, diff_nn[:,a]))])/factor)
+  #      widths_sv_upper[a].append(np.mean([abs(np.extract(diff_sv[:,a] > 0, diff_sv[:,a]))])/factor)
+  #      widths_sv_lower[a].append(np.mean([abs(np.extract(diff_sv[:,a] < 0, diff_sv[:,a]))])/factor)
+#        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)/factor)
+#        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)/factor)
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("# events")
@@ -409,7 +427,7 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
 #        #print process, " ", coeff[3], ' Fitted mean2 = ', coeff[4], ', Fitted standard deviation2 = ', coeff[5]
 #        #f = open('coeff.txt', 'a')
 #        #if coeff[2] < coeff[5]:
-#        #    f.write(";".join([str(masses[index])] + [str(a) for a in coeff]))
+#        #    f.write(";".join([str(masses[index])] + [str(a) for a in coeff]B518a9))
 #        #else:
 #        #    f.write(";".join([str(masses[index])] + [str(coeff[a]) for a in [3,4,5]]+ [str(coeff[a]) for a in [0,1,2]]))
 #        #f.write("\n")
@@ -489,7 +507,7 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
     #print "events", all_events
     #print "events/s", all_events/float(runtime)
 for a in range(4):
-    fig = plt.figure(figsize=(6,3))
+    fig = plt.figure(figsize=(6,4))
     ax = fig.add_subplot(111)
     ranges = [
         [70,3500],
@@ -500,26 +518,37 @@ for a in range(4):
         [-0.5,0.5],
         [-1.4,1.4],
         [-0.4,0.4]]
-    major_yticks = [[-40,-20,0,20,40],
-                    [-0.5,-0.25,0,0.25,0.5],
-                    [-1.4,-0.7,0,0.7,1.4],
-                    [-0.4,-0.2,0,0.2,0.4]]
-    minor_yticks = [[-30,-10,10,30],
-                    [-0.375,-0.125,0.125,0.375],
-                    [-1.05,-0.35,0.35,1.05],
-                    [-0.3,-0.1,0.1,0.3]]
+    major_yticks = [[-50,-25,0,25,50],
+                    [-0.6,-0.3,0,0.3,0.6],
+                    [-1.5,-0.75,0,0.75,1.5],
+                    [-0.3,-0.15,0,0.15,0.3]]
+    minor_yticks = [[-37.5,-12.5,12.5,37.5],
+                    [-0.45,-0.15,0.15,0.45],
+                    [-1.125,-0.375,0.375,1.125],
+                    [-0.225,-0.075,0.075,0.225]]
     titles = [ r'$\left< p_T^N - p_T^H \right>$', r'$\left< \eta_N - \eta_H \right>$',r' $\left< \phi_N - \phi_H \right>$',r' $\left<\frac{ m_N - m_H}{m_H}\right>$',]
     #ax.errorbar(masses, means_nn[a], yerr=widths_nn[a], fmt='o', color = colors["color_nn"], label = "Nostradamass")
     #ax.errorbar(masses_sv, means_sv[a], yerr=widths_sv[a], fmt='o', color = colors["color_svfit"], label = "SVFit")
-    ax.plot(masses, means_nn[a], 'k', color=colors["color_nn"], marker='.', markersize=10, label = 'Nostradamass')
-    ax.fill_between(masses, np.array(means_nn[a])-np.array(widths_nn[a]), np.array(means_nn[a])+np.array(widths_nn[a]), alpha=0.2, edgecolor=colors["color_nn"], facecolor=colors["color_nn"], linewidth=0, linestyle='dashdot', antialiased=False)
-    ax.plot(masses, means_sv[a], 'k', color=colors["color_svfit"], marker='.', markersize=10, label='SVFit')
-    ax.fill_between(masses, np.array(means_sv[a])-np.array(widths_sv[a]), np.array(means_sv[a])+np.array(widths_sv[a]), alpha=0.2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linewidth=0, linestyle='dashdot', antialiased=False)
+    ax.plot(masses, means_sv[a], 'k', color=colors["color_svfit"], marker='.', markersize=10, label='SVFit mean')
+    #ax.fill_between(masses, np.array(means_sv[a])-np.array(widths_sv_lower[a]), np.array(means_sv[a])+np.array(widths_sv_upper[a]), alpha=0.2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linewidth=1, linestyle='-', antialiased=False)
+    ax.fill_between(masses, -np.array(widths_sv_lower[a]), np.array(widths_sv_upper[a]), alpha=0.2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linewidth=1, linestyle='-', antialiased=False, label = "SVFit MSE")
+    ax.plot(masses, means_nn[a], 'k', color=colors["color_nn"], marker='.', markersize=10, label = 'Nostradamass mean')
+    #ax.fill_between(masses, np.array(means_nn[a])-np.array(widths_nn_lower[a]), np.array(means_nn[a])+np.array(widths_nn_upper[a]), alpha=0.2, edgecolor=colors["color_nn"], facecolor=colors["color_nn"], linewidth=1, linestyle='-', antialiased=False)
+    ax.fill_between(masses, -np.array(widths_nn_lower[a]), np.array(widths_nn_upper[a]), alpha=0.2, edgecolor=colors["color_nn"], facecolor=colors["color_nn"], linewidth=1, linestyle='-', antialiased=False, label = "Nostradamass MSE")
 
 
     ax.set_xlabel(r'Generator mass $m_H$ (GeV)')
     ax.set_ylabel(titles[a])
-    ax.set_title("rel. Resolution (" + channel_name[channel] + ")")
+    if a==0:
+        ax.set_title("transverse momentum resolution (" + channel_name[channel] + ")")
+    if a==1:
+        ax.set_title("pseudorapidity resolution (" + channel_name[channel] + ")")
+    if a==2:
+        ax.set_title("angular Resolution (" + channel_name[channel] + ")")
+    if a==3:
+        ax.set_title("rel. mass Resolution (" + channel_name[channel] + ")")
+    else:
+        ax.set_title("Resolution (" + channel_name[channel] + ")")
     ax.set_xlim(ranges[a])
     ax.set_xscale('log')
     ax.set_xticks([100,200,400,1000,2000,3000])

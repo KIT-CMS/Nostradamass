@@ -96,7 +96,7 @@ def plot(scaled_Y, X, Y, B, L, channel, out_folder=''):
             if a == 13 or a == 17:
                 arange = [-5,600]
         if channel == "em" or channel =="mt" or channel=="et" or channel=="mm" or channel == "ee":
-            arange = [-150,300]
+            arange = [-150,350]
             if a == 13 or a == 17:
                 arange = [-5,800]
 

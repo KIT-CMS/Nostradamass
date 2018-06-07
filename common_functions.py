@@ -40,7 +40,6 @@ def add_pu_target(X, Y, offset, loc, correlation_std):
     cov[:,1,1] = np.square(parameters[:,1])
     cov[:,0,1] = parameters[:,2]
     cov[:,1,0] = parameters[:,2]
-    print cov
     starttime = time.time()
 
     n_processes = 10
@@ -167,7 +166,8 @@ def load_from_pickle(in_filename):
 def load_model(model_path):
     from keras.models import load_model
     from losses import loss_fully_hadronic, loss_semi_leptonic, loss_fully_leptonic
-    model = load_model(model_path, custom_objects={'loss_fully_hadronic': loss_fully_hadronic, 'loss_semi_leptonic': loss_semi_leptonic, 'loss_fully_leptonic': loss_fully_leptonic})
+    from losses import loss_M, loss_PT, loss_dmTau, loss_dx
+    model = load_model(model_path, custom_objects={'loss_fully_hadronic': loss_fully_hadronic, 'loss_semi_leptonic': loss_semi_leptonic, 'loss_fully_leptonic': loss_fully_leptonic, 'loss_M' : loss_M, 'loss_PT':loss_PT, 'loss_dmTau' : loss_dmTau, 'loss_dx': loss_dx})
     return model
 
 def transform_fourvector(vin, cartesian_types=np.float64, hc_types=np.float64):
@@ -239,20 +239,24 @@ def predict(model_path, X, channel):
     set_session(sess)
     model = load_model(model_path)
     Y = model.predict(X)
-    mTau_squared = np.full([X.shape[0], 1], (1.77**2))
+    mTau_squared = np.full([X.shape[0]], (1.77**2))
 
     # fill energy if there is no extra target
     if channel[0] == "t":
         Y[:,i_inv1_e] = np.sqrt( np.square(Y[:,i_inv1_px]) + np.square(Y[:,i_inv1_py]) + np.square(Y[:,i_inv1_pz]))
     else:
-        P_1 = mTau_squared[:,0] - np.square(X[:,1] + Y[:,i_inv1_px]) - np.square(X[:,2] + Y[:,i_inv1_py]) - np.square(X[:,3] + Y[:,i_inv1_pz])
-        Y[:,i_inv1_e] = (-2*X[:,0] + np.sqrt( (4*np.square(X[:,0]) - 4 * ( np.square(X[:,0]) + P_1 )))) / 2
+        P_1_squared = np.square(X[:,1] + Y[:,i_inv1_px]) + \
+                      np.square(X[:,2] + Y[:,i_inv1_py]) + \
+                      np.square(X[:,3] + Y[:,i_inv1_pz])
+        Y[:,i_inv1_e] = np.sqrt(mTau_squared + P_1_squared) - X[:,0]
 
     if channel[1] == "t":
         Y[:,i_inv2_e] = np.sqrt( np.square(Y[:,i_inv2_px]) + np.square(Y[:,i_inv2_py]) + np.square(Y[:,i_inv2_pz]))
     else:
-        P_2 = mTau_squared[:,0] - np.square(X[:,5] + Y[:,i_inv2_px]) - np.square(X[:,6] + Y[:,i_inv2_py]) - np.square(X[:,7] + Y[:,i_inv2_pz])
-        Y[:,i_inv2_e] = (-2*X[:,4] + np.sqrt( (4*np.square(X[:,4]) - 4 * ( np.square(X[:,4]) + P_2 )))) / 2
+        P_2_squared = np.square(X[:,5] + Y[:,i_inv2_px]) + \
+                      np.square(X[:,6] + Y[:,i_inv2_py]) + \
+                      np.square(X[:,7] + Y[:,i_inv2_pz])
+        Y[:,i_inv2_e] = np.sqrt(mTau_squared + P_2_squared) - X[:,4]
 
     return Y
 
