@@ -8,20 +8,21 @@ from classes.JDLCreator import JDLCreator  # import the class to create and subm
 
 def main():
     """Submit a simple example job"""
-    out_dir = "toymass13_10k_lowmass"
+    out_dir = "toymass13_30k_test"
     jobs = JDLCreator()  # Default (no Cloud Site supplied): Docker with SLC6 image
     # Some example sites:
     # site_name='ekpsupermachines'  "Super Machines" IO intesiv jobs
 
     jobs.executable = "job.sh"  # name of the job script
-    jobs.wall_time = 22 * 60 * 60  # job will finish in 10 hours
+    jobs.wall_time = 11 * 60 * 60  # job will finish in 10 hours
     jobs.memory = 1900  # Our regular 2048 MB per slot
     jobs.accounting_group = "cms.higgs"
     jobs.input_files = "/usr/users/friese/toymass/pythia_eventgeneration/eventgeneration,/usr/users/friese/toymass/pythia_eventgeneration/job.sh,/usr/users/friese/.globus/proxy.grid"
 
     arguments = []
-    for masses in range(100,40,-1):
-        for seed in range(10):
+    for masses in range(40,50,2):
+    #for masses in range(40,3200,2):
+        for seed in [20]:
             for channel in ["tt", "mt", "et", "em", "mm", "ee"]:
                 for invert in ["true", "false"]:
                     arguments.append(" ".join([str(x) for x in [masses, seed, channel, invert, out_dir]]))

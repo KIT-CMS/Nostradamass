@@ -208,6 +208,7 @@ def loss_dmTau(y_true, y_pred):
 
 
 def loss_fully_leptonic(y_true, y_pred):
+    mTau_squared = (1.77**2)
     gen_mass = K.square(y_true[:,i_gen_mass])
 
     dx = (K.square(y_pred[:,i_inv1_px] - y_true[:,i_inv1_px])/gen_mass) + \
@@ -249,4 +250,21 @@ def loss_fully_leptonic(y_true, y_pred):
                         y_pred[:,i_smear_py]) -
                         y_true[:,i_smeared_met_py]) / gen_mass)
 
-    return K.mean(dx + dy + dz + dmet_x + dmet_y + dPT_tau + dP_tau)
+    P_1_squared = K.square(y_true[:,i_tau1_px] + y_pred[:,i_inv1_px]) + \
+                  K.square(y_true[:,i_tau1_py] + y_pred[:,i_inv1_py]) + \
+                  K.square(y_true[:,i_tau1_pz] + y_pred[:,i_inv1_pz])
+    E_1 = K.sqrt(mTau_squared + P_1_squared) 
+
+    P_2_squared = K.square(y_true[:,i_tau2_px] + y_pred[:,i_inv2_px]) + \
+                  K.square(y_true[:,i_tau2_py] + y_pred[:,i_inv2_py]) + \
+                  K.square(y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz])
+    E_2 = K.sqrt(mTau_squared + P_2_squared) 
+
+    
+    P_total_squared = K.square(y_true[:,i_tau1_px] + y_pred[:,i_inv1_px] + y_true[:,i_tau2_px] + y_pred[:,i_inv2_px] ) + \
+                      K.square(y_true[:,i_tau1_py] + y_pred[:,i_inv1_py] + y_true[:,i_tau2_py] + y_pred[:,i_inv2_py] ) + \
+                      K.square(y_true[:,i_tau1_pz] + y_pred[:,i_inv1_pz] + y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz] ) 
+
+    dM = K.square((K.square(E_1 + E_2) - P_total_squared - gen_mass) / gen_mass)
+
+    return K.mean(dx + dy + dz + dmet_x + dmet_y + dPT_tau + dP_tau + dM)
