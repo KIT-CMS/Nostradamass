@@ -9,11 +9,12 @@ output_folder: test/
 
 # specify which training to apply on which tree
 models:
-    tt_nominal/ntuple: ['tt', pre-trained-models/v1/tt.hdf5]
-    et_nominal/ntuple: ['et', pre-trained-models/v1/et.hdf5]
-    mt_nominal/ntuple: ['mt', pre-trained-models/v1/mt.hdf5]
-    mm_nominal/ntuple: ['mm', pre-trained-models/v1/mm.hdf5]
-    em_nominal/ntuple: ['em', pre-trained-models/v1/em.hdf5]
+    tt_nominal/ntuple: ['tt', pre-trained-models/v2/tt.hdf5]
+    et_nominal/ntuple: ['et', pre-trained-models/v2/et.hdf5]
+    mt_nominal/ntuple: ['mt', pre-trained-models/v2/mt.hdf5]
+    mm_nominal/ntuple: ['mm', pre-trained-models/v2/mm.hdf5]
+    em_nominal/ntuple: ['em', pre-trained-models/v2/em.hdf5]
+    em_nominal/ntuple: ['ee', pre-trained-models/v2/em.hdf5]
 
 # input files
 files:
