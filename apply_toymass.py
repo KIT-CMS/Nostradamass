@@ -115,7 +115,7 @@ def gauss(x, *p):
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
 
-channel_name = {"tt": r'$\tau_{had} \tau_{had}$', "mt": r'$\mu \tau_{had}$', "em" : r'$e \mu$', "et" : r'$e \tau$'}
+channel_name = {"tt": r'$\tau_{h} \tau_{h}$', "mt": r'$\mu \tau_{h}$', "em" : r'$e \mu$', "et" : r'$e \tau$'}
 #binnings = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 binnings = [50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
@@ -313,64 +313,45 @@ for filename, new_filename, binning, mass in zip(filenames, new_filenames, binni
 ##        print process, " met cov: ", np.mean(v[:,a]), ' median', np.median(v[:,a]), ", toy resolution: ", np.std(met_unc[:,a])
     print process
     for a in range(regressed_physfourvectors.shape[1]):
-        fig = plt.figure(figsize=(3,3))
+        fig = plt.figure(figsize=(3.5,3.5))
         ax = fig.add_subplot(111)
-        ranges = [[0,500],
-            [-6,10],
-            [-4,4],
-            [0,mass*3]]
-        titles = [ r'$p_T$ (GeV)', r'$\eta$',r'$\phi$',r'$m$ (GeV)',]
-        n, bins, patches = plt.hist(gen[:,a], bins=binning, color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
-        n, bins, patches = plt.hist(regressed_physfourvectors[:,a], bins=binning, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
-     #   n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], color=colors["color_nn"], alpha=0.5, range=ranges[a], histtype='step', label='diffnn')
-        n, bins, patches = plt.hist(svfit[:,a], bins=binning, color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
-    #    n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], color=colors["color_svfit"], range=ranges[a], histtype='step', label='diff SVFit', linestyle='dotted')
-#        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning[index], normed=1, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='Regressed')
-#        n, bins, patches = plt.hist(diff_svfit[:,a], bins=binning[index], normed=1, color=colors["color_svfit"], alpha=0.5, range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
-        #print "phys diffvector mean ", a, np.mean(diff_physfourvectors[:,a]), " stddev " , np.std(diff_physfourvectors[:,a])
+        ranges = \
+            [[-max(np.absolute(diff_nn[:,a])),max(np.absolute(diff_nn[:,a]))],
+            [-max(np.absolute(diff_nn[:,a])),max(np.absolute(diff_nn[:,a]))],
+            [-max(np.absolute(diff_nn[:,a])),max(np.absolute(diff_nn[:,a]))],
+            [-max(np.absolute(diff_nn[:,a])),max(np.absolute(diff_nn[:,a]))]]
+        titles = [ r'$\Delta p_T(gen, reco)$ (GeV)', r'$\Delta \eta(gen, reco)$',r'$\Delta \phi (gen,reco)$',r'$\Delta m(gen,reco)$ (GeV)']
+#        n, bins, patches = plt.hist(gen[:,a], bins=binning, color=colors["color_true"], alpha=0.75, range=ranges[a], histtype='step', label='True')
+        print a
+        print diff_nn[:,a]
+        print ranges[a]
+        n, bins, patches = plt.hist(diff_nn[:,a], bins=binning, color=colors["color_nn"], alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+        n, bins, patches = plt.hist(diff_sv[:,a], bins=binning, color=colors["color_svfit"], range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+#        n, bins, patches = plt.hist(np.extract(diff_nn[:,a] > 0, diff_nn[:,a]), bins=binning, color="red", alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+#        n, bins, patches = plt.hist(np.extract(diff_sv[:,a] > 0, diff_sv[:,a]), bins=binning, color="green", range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
+#        n, bins, patches = plt.hist(np.extract(diff_nn[:,a] < 0, diff_nn[:,a]), bins=binning, color="yellow", alpha=0.75, range=ranges[a], histtype='step', label='N.mass')
+#        n, bins, patches = plt.hist(np.extract(diff_sv[:,a] < 0, diff_sv[:,a]), bins=binning, color="orange", range=ranges[a], histtype='step', label='SVFit', linestyle='dotted')
         print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)), "\\\\"
         print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_sv[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_sv[:,a]))**2)), "\\\\ \hline"
 
-#        if a == 0:
-#            ax.text(0.6, 0.5, r'$\sigma(p_T^{true}, p_T^{N})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#            ax.text(0.65, 0.4, "{:10.1f}".format(np.std(diff_nn[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
-#            ax.text(0.6, 0.3, r'$\sigma(p_T^{true}, p_T^{SV})$ = ', fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#            ax.text(0.65, 0.2, "{:10.1f}".format(np.std(diff_svfit[:,a])) +" GeV", fontsize=12, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#
-#        if a == 3:
-#            ax.text(0.6, 0.5, r'$\sigma / \Delta (m^{true}, m^{m})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#            ax.text(0.65, 0.4, "{:3.1f}".format(np.std(diff_nn[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_nn[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#            ax.text(0.6, 0.3, r'$\sigma / \Delta (m^{true}, m^{SV})$ = ', fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-#            ax.text(0.65, 0.2, "{:3.1f}".format(np.std(diff_svfit[:,a])) +" GeV / " + "{:3.1f}".format(np.mean(diff_svfit[:,a])) + " GeV",  fontsize=10, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-
         factor = mass*2.0 if a==3 else 2.0
-
 
 #       split in upper and lower widths
         means_nn[a].append(np.mean(diff_nn[:,a])/ factor)
         means_sv[a].append(np.mean(diff_sv[:,a])/factor)
 
-
-        #widths_nn_upper[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_nn[:,a] > 0, diff_nn[:,a]))])))/factor)
         widths_nn_upper[a].append((np.sqrt(np.sum(np.square(np.extract(diff_nn[:,a] > 0, diff_nn[:,a])))/np.extract(diff_nn[:,a] > 0, diff_nn[:,a]).size))/factor)
         widths_nn_lower[a].append((np.sqrt(np.sum(np.square(np.extract(diff_nn[:,a] < 0, diff_nn[:,a])))/np.extract(diff_nn[:,a] < 0, diff_nn[:,a]).size))/factor)
         widths_sv_upper[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] > 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] > 0, diff_sv[:,a]).size))/factor)
         widths_sv_lower[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] < 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] < 0, diff_sv[:,a]).size))/factor)
-#        widths_nn_lower[a].append(np.sqrt(np.sum(np.square([abs()])))/factor)
-        #widths_sv_upper[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_sv[:,a] > 0, diff_sv[:,a]))])))/factor)
-        #widths_sv_lower[a].append(np.sqrt(np.sum(np.square([abs(np.extract(diff_sv[:,a] < 0, diff_sv[:,a]))])))/factor)
-  #      widths_nn_lower[a].append(np.mean([abs(np.extract(diff_nn[:,a] < 0, diff_nn[:,a]))])/factor)
-  #      widths_sv_upper[a].append(np.mean([abs(np.extract(diff_sv[:,a] > 0, diff_sv[:,a]))])/factor)
-  #      widths_sv_lower[a].append(np.mean([abs(np.extract(diff_sv[:,a] < 0, diff_sv[:,a]))])/factor)
-#        widths_nn[a].append(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)/factor)
-#        widths_sv[a].append(np.sqrt(np.mean(abs(diff_svfit[:,a]))**2)/factor)
 
         ax.set_xlabel(titles[a])
         ax.set_ylabel("# events")
         ax.set_title("Di-$\\tau$ system (" + channel_name[channel] + ", " + process + ")")
+        ax.set_ylim(0, ax.get_ylim()[1]*1.3)
+        ax.grid()
 
-        plt.legend(loc='best')
+        plt.legend(loc='best', ncol=2)
         plt.tight_layout()
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".pdf"))
         plt.savefig(os.path.join(outpath, process+"-regressed"+str(a)+".png"))
