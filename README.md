@@ -21,38 +21,7 @@ Download the repository with
 git clone git@github.com:rfriese/Nostradamass.git
 ```
 
-Edit setup_env.sh depending on the system you use.
-
-
-## Generating simulated events
-
-This step is only necessary to produce new trainings. Skip this step in case you want to use existing trainings.
-
-Compilation requires gcc7. Earlier versions are not supported.
-
-```
-source setup_env.sh
-cd pythia_eventgeneration
-make
-```
-
-The job.sh script helps in setting the parameters. It can also be sent to your local batch system by the [JDL creator]("https://gitlab.ekp.kit.edu/mschnepf/jdl_creator").
-
-The first parameter is the mass to be simulated, the second the seed, the third the channel. The last parameter is a boolean that is "true" for events where the first tau is positively charged and "false" for negatively charged first taus. It is recommended to produce always the same amount of events with both parameters.
-```
-./job.sh 300 1234 mt true
-
-```
-Edit eventgeneration.cc to modify its parameters.
-
-## Performing a training
-
-Modify the script "train_channel.sh" to point to the previously produced simulated events and provide an output path. The only command-line parameter is the channel, e.g.
-
-```
-./train_channel mt
-```
-
+Edit setup_env.sh depending on the system you use and setup_training.sh.
 
 ## Application on a sync n-tuple
 
@@ -63,7 +32,42 @@ To run Nostradamass on a ROOT n-tuple, the following properties must be present:
 
 Edit the file "config.yaml" or create a similar yaml file following your needs. The 'models' section specifies on which trees which models should be applied. List all your 'files' in the corresponding section. Run the application with:
 ```
+source setup_env.py
 python calculate_mass.py config.yaml
 ```
 
 The output folder will contain for each input root-file a new file containing a Tree that is a friend of the original Tree. Use the TTree::AddFriend() function to include the Nostradamass results to your original tree.
+
+
+## Generating simulated events
+
+This step is only necessary to produce new trainings. Skip this step in case you want to use existing trainings.
+
+Compilation requires gcc62. Earlier versions are not supported. Experience shows that only slc6 machines compile properly.
+
+```
+source setup_env.sh
+cd pythia_eventgeneration
+make
+```
+
+The job.sh script helps in setting the parameters. It can also be sent to your local batch system by the [JDL creator]("https://gitlab.ekp.kit.edu/mschnepf/jdl_creator").
+
+The first parameter is the mass to be simulated, the second the seed, the third the channel. The last parameter is a boolean that is "true" for events where the first tau is positively charged and "false" for negatively charged first taus. It is recommended to produce always the same amount of events with both parameters.
+
+Make sure you run the 'job.sh' script in a new shell. If e.g. a LCG release has been sourced before, it will most likely fail!
+```
+./job.sh 300 1234 mt true
+
+```
+Edit eventgeneration.cc to modify its parameters like kinematic selection, number of events etc.
+
+## Performing a training
+
+Modify the script "train_channel.sh" to point to the previously produced simulated events and provide an output path. The first parameter is the channel, the second one the GPU number for the training.
+
+```
+source setup_training.sh
+./train_channel mt
+```
+

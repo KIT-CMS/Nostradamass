@@ -24,6 +24,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
     kernel_initializer = "random_uniform"
     bias_initializer = "Zeros"
     print "adding pu target"
+    # Adjust the parameters to the expected MET-resolution scenario, derived from the MET covariance matrix of the data to be analyzed
     X, Y = add_pu_target(X, Y, 7., 24., 80.)
     #X, Y = add_pu_target(X, Y, 0., 0., 0.)
 
@@ -42,9 +43,7 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
         model.add(Dense(500, activation='linear', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
         model.add(GaussianNoise(stddev=1.0))
         for l in range(9):
-#            model.add(Dense(500-l*50, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
             model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
-#            model.add(Dropout(0.05))
         model.add(Dense(Y.shape[1], activation='linear'))
         model.compile(loss=loss, optimizer=optimizer, metrics = [loss_M, loss_PT, loss_dmTau, loss_dx])
     else:
@@ -76,9 +75,11 @@ def train_model(X, Y,  channel, model_filename = "toy_mass.h5", out_folder='', p
                     validation_data = (X_test, Y_test),
                     callbacks = [model_checkpoint, early_stopping])
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
+    # clean models that in the end turned out to be not the best
     for f in files:
         os.remove(os.path.join(out_folder, f))
-#    model.save(os.path.join(out_folder, model_filename))
+    # saving not necessary, the best ones have been saved by the callback
+    # model.save(os.path.join(out_folder, model_filename))
     return model
     
 if __name__ == '__main__':
