@@ -68,6 +68,6 @@ Modify the script "train_channel.sh" to point to the previously produced simulat
 
 ```
 source setup_training.sh
-./train_channel mt
+./train_Nostradamass.sh mt 0
 ```
 
