@@ -12,112 +12,33 @@ from common_functions import full_fourvector
 from common_functions import predict
 from plot_invisibles import colors
 import time
+import glob
+import re
 
-filenames = [
-#            "GluGluHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8",
-            "SUSYGluGluToHToTauTauM80_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM90_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM100_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM110_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM120_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM130_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM140_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM160_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM180_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM250_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM350_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM400_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM450_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM500_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM700_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM800_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM1000_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM1200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM1400_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM1600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM1800_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM2000_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM2300_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM2600_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM2900_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8",
-            "SUSYGluGluToHToTauTauM3200_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_pythia8"]
- #           "VBFHToTauTauM125_RunIISummer16MiniAODv2_PUMoriond17_13TeV_MINIAOD_powheg-pythia8"]
-folder = "/storage/b/friese/htautau/artus/2018-05-07_17-35_analysis/output/merged/"
+def sorted_nicely(l):
+    """ Sort the given iterable in the way that humans expect: alphanumeric sort (in bash, that's 'sort -V')"""
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
+    return sorted(l, key = alphanum_key)
 
-new_filenames = [
-#            "GluGluH",
-            "SUSY80",
-            "SUSY90",
-            "SUSY100",
-            "SUSY110",
-            "SUSY120",
-            "SUSY130",
-            "SUSY140",
-            "SUSY160",
-            "SUSY180",
-            "SUSY200",
-            "SUSY250",
-            "SUSY350",
-            "SUSY400",
-            "SUSY450",
-            "SUSY500",
-            "SUSY600",
-            "SUSY700",
-            "SUSY800",
-            "SUSY900",
-            "SUSY1000",
-            "SUSY1200",
-            "SUSY1400",
-            "SUSY1600",
-            "SUSY1800",
-            "SUSY2000",
-            "SUSY2300",
-            "SUSY2600",
-            "SUSY2900",
-            "SUSY3200"]
- #           "VBFH"]
-masses = [  #125,
-            80,
-            90,
-            100,
-            110,
-            120,
-            130,
-            140,
-            160,
-            180,
-            200,
-            250,
-            350,
-            400,
-            450,
-            500,
-            600,
-            700,
-            800,
-            900,
-            1000,
-            1200,
-            1400,
-            1600,
-            1800,
-            2000,
-            2300,
-            2600,
-            2900,
-            3200]#], 125]
-masses_sv = [a + 5 for a in masses]
+folder = "/portal/ekpbms1/home/akhmet/workdir/Nostradamass/Nostradamass/test"
+filelist = glob.glob(folder+"/*")
+filenames = sorted_nicely([ os.path.basename(f) for f in filelist if "HToTauTau" in f])
+
+def get_infos(l):
+    new_filenames = [ f.strip().split("_")[0].replace("ToTauTauM","") for f in l]
+    masses = [int(re.findall(r'\d+', f)[0]) for f in new_filenames]
+    binnings = [ 50 if m < 150 else 100 for m in masses]
+    return new_filenames, masses, binnings
+
+new_filenames, masses, binnings = get_infos(filenames)
+
 def gauss(x, *p):
     A, mu, sigma, A2, mu2, sigma2 = p
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
 
 channel_name = {"tt": r'$\tau_{h} \tau_{h}$', "mt": r'$\mu \tau_{h}$', "em" : r'$e \mu$', "et" : r'$e \tau$'}
-#binnings = [50, 50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
-binnings = [50, 50, 50, 50, 50, 100, 100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100]
 channel = sys.argv[1]
 model_path = sys.argv[2]
 outpath = sys.argv[3]
