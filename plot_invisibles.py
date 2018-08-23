@@ -22,6 +22,8 @@ from common_functions import load_from_root, load_model, add_pu_target, load_fro
 
 colors = {
     "color_nn" : 'red',
+    "color_SUSYggH" : 'red',
+    "color_SUSYbbH" : 'blue',
     "color_svfit" : 'blue',
     "color_visible" : 'yellow',
     "color_true" : 'green' }
