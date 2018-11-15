@@ -3,9 +3,9 @@ environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 #environ['CUDA_VISIBLE_DEVICES'] = "3"
 import sys, os
 import numpy as np
+import json
 seed = 1234
 np.random.seed(seed)
-
 
 from common_functions import add_pu_target
 from common_functions import transform_fourvector
@@ -13,10 +13,9 @@ from common_functions import load_from_root, load_model, load_from_pickle
 
 def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., model_filename = "toy_mass.h5", out_folder='', previous_model=None,):
     from keras.models import Sequential
-    from keras.layers import Dense, Dropout
+    from keras.layers import Dense, Dropout, GaussianNoise
     from keras.backend.tensorflow_backend import set_session
     import tensorflow as tf
-    from keras.layers import GaussianNoise
     config = tf.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 0.45
     sess = tf.Session(config=config)
@@ -55,6 +54,7 @@ def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., mo
     from keras.callbacks import TensorBoard
     #tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
     early_stopping = EarlyStopping(patience = 25)
+    history_list = []
 
     from sklearn.model_selection import train_test_split
 
@@ -69,11 +69,13 @@ def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., mo
                                             save_weights_only=False,
                                             mode='auto',
                                             period=1)
-        model.fit(tmp_X, Y_train,
+        history_list.append(model.fit(tmp_X, Y_train,
                     batch_size=10000,
                     epochs=2000,
                     validation_data = (X_test, Y_test),
-                    callbacks = [model_checkpoint, early_stopping])
+                    callbacks = [model_checkpoint, early_stopping]))
+    with open(os.path.join(out_folder,"history.json"),"w") as hist:
+        hist.write(json.dumps(history_list[-1].history, indent=2, sort_keys=True))
     files = sorted([f for f in os.listdir(out_folder) if f.split(".")[-1] == "hdf5"])[0:-1]
     # clean models that in the end turned out to be not the best
     for f in files:
