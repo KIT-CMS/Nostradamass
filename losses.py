@@ -38,6 +38,7 @@ def loss_fully_hadronic(y_true, y_pred):
     dy = (K.square(y_pred[:,i_inv1_py] - y_true[:,i_inv1_py])/gen_mass) + \
          (K.square(y_pred[:,i_inv2_py] - y_true[:,i_inv2_py])/gen_mass) + \
          (K.square(y_pred[:,i_smear_py] - y_true[:,i_smear_py])/gen_mass)
+
     dz = (K.square(y_pred[:,i_inv1_pz] - y_true[:,i_inv1_pz])/gen_mass) + \
          (K.square(y_pred[:,i_inv2_pz] - y_true[:,i_inv2_pz])/gen_mass) 
 
@@ -63,21 +64,6 @@ def loss_fully_hadronic(y_true, y_pred):
                               K.square(y_true[:,i_inv2_py]+y_true[:,i_tau2_py]) + \
                               K.square(y_true[:,i_inv2_pz]+y_true[:,i_tau2_pz]))) / gen_mass)
 
-    dm_tau_1 = K.abs((
-                         K.square(y_true[:,i_tau1_e] + \
-                                  K.sqrt( K.square(y_pred[:,i_inv1_px]) + K.square(y_pred[:,i_inv1_py]) + K.square(y_pred[:,i_inv1_pz]))) - \
-                       ( K.square(y_true[:,i_tau1_px] + y_pred[:,i_inv1_px]) + \
-                         K.square(y_true[:,i_tau1_py] + y_pred[:,i_inv1_py]) + \
-                         K.square(y_true[:,i_tau1_pz] + y_pred[:,i_inv1_pz])) -
-                       mtau_squared)/gen_mass_sqrt)
-
-    dm_tau_2 = K.abs((
-                         K.square(y_true[:,i_tau2_e] + \
-                                  K.sqrt( K.square(y_pred[:,i_inv2_px]) + K.square(y_pred[:,i_inv2_py]) + K.square(y_pred[:,i_inv2_pz]))) - \
-                       ( K.square(y_true[:,i_tau2_px] + y_pred[:,i_inv2_px]) + \
-                         K.square(y_true[:,i_tau2_py] + y_pred[:,i_inv2_py]) + \
-                         K.square(y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz])) -
-                       mtau_squared)/gen_mass_sqrt)
 
     E_1_inv =  K.sqrt(K.square(y_pred[:,i_inv1_px]) + K.square(y_pred[:,i_inv1_py]) + K.square(y_pred[:,i_inv1_pz]))
     E_1 = y_true[:,i_tau1_e] + E_1_inv
@@ -88,7 +74,21 @@ def loss_fully_hadronic(y_true, y_pred):
                       K.square(y_true[:,i_tau1_py] + y_pred[:,i_inv1_py] + y_true[:,i_tau2_py] + y_pred[:,i_inv2_py] ) + \
                       K.square(y_true[:,i_tau1_pz] + y_pred[:,i_inv1_pz] + y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz] ) 
 
-    dM = K.square((K.square(E_1 + E_2) - P_total_squared - gen_mass) / gen_mass)
+    dm_tau_1 = K.abs((
+                         K.square(E_1) - \
+                       ( K.square(y_true[:,i_tau1_px] + y_pred[:,i_inv1_px]) + \
+                         K.square(y_true[:,i_tau1_py] + y_pred[:,i_inv1_py]) + \
+                         K.square(y_true[:,i_tau1_pz] + y_pred[:,i_inv1_pz])) -
+                       mtau_squared)/gen_mass)
+
+    dm_tau_2 = K.abs((
+                         K.square(E_2) - \
+                       ( K.square(y_true[:,i_tau2_px] + y_pred[:,i_inv2_px]) + \
+                         K.square(y_true[:,i_tau2_py] + y_pred[:,i_inv2_py]) + \
+                         K.square(y_true[:,i_tau2_pz] + y_pred[:,i_inv2_pz])) -
+                       mtau_squared)/gen_mass)
+
+    dM = (K.square(E_1 + E_2) - P_total_squared - gen_mass) / gen_mass
 
     return K.mean(dx + dy + 0.1 * dz + dm_tau_1 + dm_tau_2 + dmet_x + dmet_y + dPT_tau + dM)
 
