@@ -50,8 +50,11 @@ signal_patterns = {
 
 colors_nn = {
     "2016" : "red",
+    "2016oldPrescription" : "red",
     "2017BCD" : "orange",
-    "2017EF" : "green"
+    "Raphaels" : "orange",
+    "2017EF" : "green",
+    "2017realistic" : "green",
 }
 
 

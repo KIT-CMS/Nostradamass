@@ -51,19 +51,23 @@ signal_patterns = {
     "SMH" : "^(VBFH|GluGluH|WplusH|WminusH|ZH)",
     "SUSYbbH" : "BBHToTauTau",
     "SUSYggH" : "SUSYGluGluToH",
-
 }
 
 colors_nn = {
     "2016" : "red",
+    "2016oldPrescription" : "red",
+    "Raphaels" : "violet",
     "2017BCD" : "orange",
-    "2017EF" : "green"
+    "2017EF" : "green",
+    "NN-based" : "red",
+    "DDT" : "red",
+    "DDT corr" : "orange",
 }
 
 
 
 for s in signal_patterns:
-    titles = [ r'$\left< p_T^N - p_T^H \right>$', r'$\left< \eta_N - \eta_H \right>$',r' $\left< \phi_N - \phi_H \right>$',r' $\left<\frac{ m_N - m_H}{m_H}\right>$',]
+    titles = [ r'$\left< p_T^N - p_T^H \right>$', r'$\left< \eta_N - \eta_H \right>$',r' $\left< \phi_N - \phi_H \right>$',r' $\left<\frac{ m_{\tau\tau} - m_H}{m_H}\right>$',]
     yranges = [[-40,40],
         [-0.5,0.5],
         [-1.4,1.4],
@@ -108,6 +112,7 @@ for s in signal_patterns:
             ax.set_yticks(major_yticks[a])
             ax.set_yticks(minor_yticks[a],minor=True)
             svplotted = False
+            ddtplotted = True
 
             for model,name in zip(modelpaths,modelnames):
 
@@ -121,11 +126,18 @@ for s in signal_patterns:
                     results[s] = json.load(f)
                 masses = [info[2] for info in results[s.replace("SUSY","")]["info"]]
                 if not svplotted:
-                    ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_sv"][a], 'k', color=colors["color_svfit"], marker='.', markersize=10, label = 'SVFit median')
-                    ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_sv"][a]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_sv"][a]), alpha=0.2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linewidth=1, linestyle='-', antialiased=False, label = "SVFit 68% CL interval")
+                    ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_sv"][a], 'k', color=colors["color_svfit"], marker='.', markersize=10, label = 'ClassicSVFit median')
+                    ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_sv"][a]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_sv"][a]), alpha=0.2, linewidth=2, edgecolor=colors["color_svfit"], facecolor=colors["color_svfit"], linestyle='-', antialiased=False, label = "ClassicSVFit 68% CL interval")
                     svplotted = True
-                ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_nn"][a], 'k', color=colors_nn[name], marker='.', markersize=10, label = 'Nostradamass %s median'%name)
-                ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_nn"][a]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_nn"][a]), alpha=0.2, edgecolor=colors_nn[name], facecolor=colors_nn[name], linewidth=1, linestyle='-', antialiased=False, label = "Nostradamass %s 68%s CL interval"%(name,"%"))
+                if a == 3 and ddtplotted == False:
+                    ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_ddt"][0], 'k', color=colors_nn["DDT"], marker='.', markersize=10, label = '%s median'%"DDT")
+                    ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_ddt"][0]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_ddt"][0]), alpha=0.2, linewidth=2, edgecolor=colors_nn["DDT"], facecolor=colors_nn["DDT"], linestyle='-', antialiased=False, label = "%s 68%s CL interval"%("DDT","%"))
+
+                    ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_ddt"][1], 'k', color=colors_nn["DDT corr"], marker='.', markersize=10, label = '%s median'%"DDT corr")
+                    ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_ddt"][1]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_ddt"][1]), alpha=0.2, linewidth=2, edgecolor=colors_nn["DDT corr"], facecolor=colors_nn["DDT corr"], linestyle='-', antialiased=False, label = "%s 68%s CL interval"%("DDT corr","%"))
+
+                ax.plot(masses, results[s.replace("SUSY","")]["percentiles_50p0_nn"][a], 'k', color=colors_nn[name], marker='.', markersize=10, label = '%s median'%name)
+                ax.fill_between(masses, np.array(results[s.replace("SUSY","")]["percentiles_15p9_nn"][a]), np.array(results[s.replace("SUSY","")]["percentiles_84p1_nn"][a]), alpha=0.2, linewidth=2, edgecolor=colors_nn[name], facecolor=colors_nn[name], linestyle='-', antialiased=False, label = "%s 68%s CL interval"%(name,"%"))
 
             plt.legend(loc=2, ncol=2)
             plt.tight_layout()

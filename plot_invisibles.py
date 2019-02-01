@@ -24,7 +24,7 @@ colors = {
     "color_nn" : 'red',
     "color_SUSYggH" : 'red',
     "color_SUSYbbH" : 'blue',
-    "color_svfit" : 'blue',
+    "color_svfit" : 'dodgerblue',
     "color_visible" : 'yellow',
     "color_true" : 'green' }
 
