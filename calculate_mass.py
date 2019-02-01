@@ -5,6 +5,7 @@ environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 environ["CUDA_VISIBLE_DEVICES"] ='2'
 from root_numpy import root2array, array2tree, array2root, list_trees, list_directories
 from ROOT import TTree, TFile
+import ROOT as r
 import numpy as np
 
 from common_functions import load_model
@@ -107,7 +108,7 @@ def calculate_arrays(args):
         getattr(f, foldername).cd()
         for output in outputs:
             tree = array2tree(output, name = treename, tree = tree)
-        f.Write()
+        f.Write("",r.TObject.kOverwrite)
         f.Close()
         lock.release()
         #print os.getpid(), ": lock released by process "
