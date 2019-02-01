@@ -4,7 +4,10 @@ from fourvector import FourVector, FourMomentum, create_FourMomentum
 import pickle
 import os
 import time
+import ROOT as r
 from multiprocessing import Pool
+from functools import partial
+import datetime
 
 def get_random(cov_matrix):
     c= np.array(cov_matrix)
@@ -18,8 +21,13 @@ def get_resolution_correlation(mass):
     
     return np.array([res_x, res_y, correlation])
 
-def add_pu_target(X, Y, offset, loc, correlation_std):
-    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]++X.shape[1]+2])
+def get_random_metcov_general(index, low_edges, high_edges, nbins, probabilities):
+    random_xs = [np.random.uniform(low_edges[index][i],high_edges[index][i]) for i in range(nbins[index])]
+    return np.random.choice(random_xs, p=probabilities[index])
+
+def add_pu_target(X, Y, primary_dataset, inputfile, savedsmearing):
+
+    tmp_Y = np.zeros([Y.shape[0], Y.shape[1]+X.shape[1]+2])
     tmp_X = np.zeros([X.shape[0], X.shape[1]+3])
     smear = np.zeros([X.shape[0], 2])
     parameters = np.zeros([X.shape[0], 3])
@@ -27,31 +35,56 @@ def add_pu_target(X, Y, offset, loc, correlation_std):
     for i in range(X.shape[1]):
         tmp_X[:,i] = X[:,i]
 
-    cov = np.zeros([X.shape[0], 2,2])
-    # mass-dependent smearing
-    #n_processes = 10
-    #pool = Pool(processes=n_processes)
-    #parameters = np.array(pool.map(get_resolution_correlation, Y[:,0].tolist()))
-    parameters[:,0] = np.random.normal(loc, offset, (X.shape[0]))
-    parameters[:,1] = np.random.normal(loc, offset, (X.shape[0]))
-    parameters[:,2] = np.random.normal(0, correlation_std, (X.shape[0]))
-    cov = np.zeros([Y.shape[0], 2, 2])
-    cov[:,0,0] = np.square(parameters[:,0])
-    cov[:,1,1] = np.square(parameters[:,1])
-    cov[:,0,1] = parameters[:,2]
-    cov[:,1,0] = parameters[:,2]
-    starttime = time.time()
+    if os.path.exists(savedsmearing):
+        npz = np.load(savedsmearing)
+        parameters[:,0] = npz["cov00"]
+        parameters[:,1] = npz["cov11"]
+        parameters[:,2] = npz["cov01"]
+        smear = npz["smear"]
+    else:
+        inp = r.TFile(inputfile,"read")
+        hcov = [inp.Get("_".join(["hcov00",primary_dataset])), inp.Get("_".join(["hcov11",primary_dataset])), inp.Get("_".join(["hcov01",primary_dataset]))]
+        nbins = [h.GetNbinsX() for h in hcov]
+        low_edges = [[h.GetBinLowEdge(i+1) for i in range(nbins[j])] for j,h in enumerate(hcov)]
+        high_edges = [[ h.GetBinLowEdge(i+1)+h.GetBinWidth(i+1) for i in range(nbins[j])] for j,h in enumerate(hcov)]
+        probabilities = [[ h.GetBinContent(i+1) for i in range(nbins[j])] for j,h in enumerate(hcov)]
 
-    n_processes = 10
-    pool = Pool(processes=n_processes)
-    smear = np.array(pool.map(get_random, cov.tolist()))
-    duration = time.time() - starttime
-    print "{:4.1f}".format(duration), " seconds passed, ", \
-         "{:8.2f}".format(tmp_Y.shape[0]/duration), \
-         " events/s"
 
-    tmp_X[:,10] = parameters[:,0] 
-    tmp_X[:,11] = parameters[:,1]
+        cov = np.zeros([X.shape[0], 2,2])
+        # mass-dependent smearing
+        #n_processes = 10
+        #pool = Pool(processes=n_processes)
+        #parameters = np.array(pool.map(get_resolution_correlation, Y[:,0].tolist()))
+
+        n_processes = 20
+        pool = Pool(processes=n_processes)
+        get_random_metcov=partial(get_random_metcov_general, low_edges=low_edges, high_edges=high_edges, nbins=nbins, probabilities=probabilities)
+
+        print "start",datetime.datetime.now()
+        for j in range(3):
+            print datetime.datetime.now(),"performing met covariance simulation for",j
+            indices = [j]*X.shape[0]
+            parameters[:,j] = np.array(pool.map(get_random_metcov, indices))
+        print "end",datetime.datetime.now()
+
+        cov = np.zeros([Y.shape[0], 2, 2])
+        cov[:,0,0] = parameters[:,0]
+        cov[:,1,1] = parameters[:,1]
+        cov[:,0,1] = parameters[:,2]
+        cov[:,1,0] = parameters[:,2]
+        starttime = time.time()
+
+        smear = np.array(pool.map(get_random, cov.tolist()))
+        duration = time.time() - starttime
+        print "{:4.1f}".format(duration), " seconds passed, ", \
+             "{:8.2f}".format(tmp_Y.shape[0]/duration), \
+             " events/s"
+        np.savez(savedsmearing, cov00=cov[:,0,0], cov11=cov[:,1,1], cov01=cov[:,0,1], smear=smear)
+
+    tmp_X[:,10] = np.sqrt(parameters[:,0])
+    tmp_X[:,11] = np.sqrt(parameters[:,1])
+    #tmp_X[:,10] = parameters[:,0]
+    #tmp_X[:,11] = parameters[:,1]
     tmp_X[:,12] = parameters[:,2]
 
 
@@ -85,8 +118,9 @@ def load_from_root(in_filenames, channel, use_jets=False):
         for prefix in particle_prefix:
             branches.append(prefix + "_" + postfix)
             dims = dims + 1
+    branchesnoexp = ["noexpand:%s"%s for s in branches]
     print "loading tree from ", len(in_filenames), " files..."
-    in_array = read_root(in_filenames, "tree", columns = branches).as_matrix()
+    in_array = read_root(in_filenames, "tree", columns = branchesnoexp).values
 
     starttime = time.time()
     n_events = in_array.shape[0]

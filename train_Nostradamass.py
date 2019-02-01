@@ -11,7 +11,15 @@ from common_functions import add_pu_target
 from common_functions import transform_fourvector
 from common_functions import load_from_root, load_model, load_from_pickle
 
-def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., model_filename = "toy_mass.h5", out_folder='', previous_model=None,):
+
+dataset_channel_dict = {
+    "mt" : "SingleMuon",
+    "et" : "SingleElectron",
+    "tt" : "Tau",
+    "em" : "MuonEG"
+}
+
+def train_model(X, Y,  channel="mt", metinputfile="metdata/metcovariance.root", model_filename = "toy_mass.h5", out_folder='', previous_model=None,):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout, GaussianNoise
     from keras.backend.tensorflow_backend import set_session
@@ -24,7 +32,8 @@ def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., mo
     bias_initializer = "Zeros"
     print "adding pu target"
     # Adjust the parameters to the expected MET-resolution scenario, derived from the MET covariance matrix of the data to be analyzed
-    X, Y = add_pu_target(X, Y, metcovstd, metcovmean, metcorrstd)
+    smearfile = "metdata/fullsmearing_22_11_2018_{CH}.npz".format(CH=channel)
+    X, Y = add_pu_target(X, Y, dataset_channel_dict[channel], metinputfile, smearfile)
     #X, Y = add_pu_target(X, Y, 0., 0., 0.)
 
     if channel == "tt":
@@ -87,14 +96,11 @@ def train_model(X, Y,  channel, metcovstd=7., metcovmean=24., metcorrstd=80., mo
 if __name__ == '__main__':
     channel = sys.argv[1]
     out_folder = sys.argv[2]
-    metcovstd = float(sys.argv[3])
-    metcovmean = float(sys.argv[4])
-    metcorrstd = float(sys.argv[5])
-    in_filenames = sys.argv[6:]
+    in_filenames = sys.argv[3:]
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
     f, ext = os.path.splitext(in_filenames[0])
     X, Y, B, L = load_from_root(in_filenames, channel, use_jets=0)
 
-    model = train_model(X, Y, metcovstd=metcovstd, metcovmean=metcovmean, metcorrstd=metcorrstd,out_folder=out_folder, channel = channel)
+    model = train_model(X, Y, out_folder=out_folder, channel = channel)
     model.summary()
