@@ -99,6 +99,7 @@ def apply(selection):
                 "metcov00", "metcov11", "metcov01", "metcov10",
                 "m_DDT", "m_DDTcorr",
         ]
+        branchesnoexp = ["noexpand:%s"%s for s in branches]
     #    gen_branches = ["genMetPt", "genMetPhi"]
     #    jet_branches = []
     #    for n_jet in range(n_jets):
@@ -107,7 +108,7 @@ def apply(selection):
     #        jet_branches.append("jpt_"+str(n_jet+1)) 
     #        jet_branches.append("jeta_"+str(n_jet+1)) 
     #        jet_branches.append("jphi_"+str(n_jet+1)) 
-        in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branches).as_matrix()
+        in_array = read_root(os.path.join(folder,filename,filename+".root"), channel+"_nominal/ntuple", columns = branchesnoexp).values
 
         dim = 13 
         n_events = in_array.shape[0]
