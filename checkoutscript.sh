@@ -10,4 +10,4 @@ fi
 git clone  git@github.com:KIT-CMS/Nostradamass.git
 cd Nostradamass
 git submodule init
-git submodile update
+git submodule update
