@@ -48,7 +48,8 @@ def gauss(x, *p):
     A, mu, sigma, A2, mu2, sigma2 = p
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
 
-folder = "/storage/b/akhmet/merged_files_from_naf/HTauTauSignal_with_svfit_and_genboson_13-08-2018_postsync/"
+folder = "/storage/b/akhmet/merged_files_from_naf/04_09_2018_HToTauTau_with_SVFit_v2_postsync/"
+folder = "/storage/b/akhmet/merged_files_from_naf/04_09_2018_HToTauTau_with_SVFit_v2_postsync_summerstudentDNN/"
 filelist = glob.glob(folder+"/*")
 filenames = sorted_nicely([ os.path.basename(f) for f in filelist if "HToTauTau" in f])
 
@@ -67,20 +68,21 @@ signal_patterns = {
 }
 
 def apply(selection):
-    means_nn = [[],[], [], []]
-    widths_nn_upper = [[],[], [], []]
-    widths_nn_lower = [[],[], [], []]
+
     percentiles_15p9_nn = [[],[], [], []]
     percentiles_50p0_nn = [[],[], [], []]
     percentiles_84p1_nn = [[],[], [], []]
     stability_nn = []
-    means_sv = [[],[], [], []]
-    widths_sv_upper = [[],[], [], []]
-    widths_sv_lower = [[],[], [], []]
+
     percentiles_15p9_sv = [[],[], [], []]
     percentiles_50p0_sv = [[],[], [], []]
     percentiles_84p1_sv = [[],[], [], []]
     stability_sv = []
+
+    percentiles_15p9_ddt = [[], []]
+    percentiles_50p0_ddt = [[], []]
+    percentiles_84p1_ddt = [[], []]
+
     info = get_files_information(filenames, selection)
     print "matching samples: ",len(info)
     for filename, new_filename, mass, binning in info:
@@ -95,6 +97,7 @@ def apply(selection):
                 "m_2", "pt_2", "eta_2", "phi_2",
                 "met", "metphi",
                 "metcov00", "metcov11", "metcov01", "metcov10",
+                "m_DDT", "m_DDTcorr",
         ]
     #    gen_branches = ["genMetPt", "genMetPhi"]
     #    jet_branches = []
@@ -116,6 +119,7 @@ def apply(selection):
     #    M = np.zeros([n_events, 4])
     #    phys_M = np.zeros([n_events, 4])
         gen = np.zeros([n_events, 4])
+        mddt = np.zeros([n_events, 2])
     #    mnn = np.zeros([n_events, 4])
     #    mttot = np.zeros([n_events, 4])
     #    gen_phys = np.zeros([n_events, 4])
@@ -140,6 +144,9 @@ def apply(selection):
             met_unc[i,:] = np.array([np.sqrt(a[18]), np.sqrt(a[19])])
             met_resx = np.sqrt(a[18])
             met_resy = np.sqrt(a[19])
+            #met_unc[i,:] = np.array([a[18], a[19]])
+            #met_resx = a[18]
+            #met_resy = a[19]
 
     #        FakeMet[i,:] = np.array([fake_met.px, fake_met.py])
 
@@ -167,6 +174,7 @@ def apply(selection):
                             ])
             X[i,:] = x
             svfit[i,:] = np.array([s.pt, s.eta, s.phi, s.m()])
+            mddt[i,:] = np.array([a[22],a[23]])
             l = np.array([lepton_1.e+lepton_2.e, lepton_1.px+lepton_2.px, lepton_1.py+lepton_2.py, lepton_1.pz+lepton_2.pz])
             pt[i,:] = np.array([(lepton_1+lepton_2).pt])
             L[i,:] = l
@@ -214,17 +222,20 @@ def apply(selection):
         stability_nn.append(stability_NN)
         stability_sv.append(stability_SV)
         #[p("outside masses: "+str(regressed_physfourvectors[i,3])) for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])>=2*gen[i, 3]]
-        diff_nn = np.array([ [   regressed_physfourvectors[i,0] - gen[i, 0],
-                                 regressed_physfourvectors[i,1] - gen[i, 1],
-                                 regressed_physfourvectors[i,2] - gen[i, 2],
-                                 #regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0]) if abs(regressed_physfourvectors[i,3] - gen[i, 3])<2*gen[i, 3]  ])
-                                 regressed_physfourvectors[i,3] - gen[i, 3], ] for i in range(gen.shape[0])])
+        diff_nn = np.array([ [   (regressed_physfourvectors[i,0] - gen[i, 0]),
+                                 (regressed_physfourvectors[i,1] - gen[i, 1]),
+                                 (regressed_physfourvectors[i,2] - gen[i, 2]),
+                                 (regressed_physfourvectors[i,3] - gen[i, 3])/gen[i,3], ] for i in range(gen.shape[0])])
 
-        diff_sv = np.array([  [svfit[i,0] - gen[i, 0],
-                                  svfit[i,1] - gen[i, 1],
-                                  svfit[i,2] - gen[i, 2],
-                                  #svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0]) if abs(svfit[i,3] - gen[i, 3])<2*gen[i, 3]])
-                                  svfit[i,3] - gen[i, 3],] for i in range(gen.shape[0])])
+        diff_sv = np.array([  [(svfit[i,0] - gen[i, 0]),
+                                  (svfit[i,1] - gen[i, 1]),
+                                  (svfit[i,2] - gen[i, 2]),
+                                  (svfit[i,3] - gen[i, 3])/gen[i, 3],] for i in range(gen.shape[0])])
+
+        diff_ddt = np.array([
+                                  [(mddt[i,0] - gen[i, 3])/gen[i, 3],
+                                   (mddt[i,1] - gen[i, 3])/gen[i, 3],] for i in range(gen.shape[0])
+                            ])
 
     #    met_uncs[process] = met_unc
     #    met_covs[process] = met_cov
@@ -270,8 +281,6 @@ def apply(selection):
             print '\multirow{2}{*}{', titles[a],'$} & No. &', "{:2.2f}".format(np.mean(diff_nn[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_nn[:,a]))**2)), "\\\\"
     #        print '                            ', " & SV. &", "{:2.2f}".format(np.mean(diff_sv[:,a])), " & ", "{:2.2f}".format(np.sqrt(np.mean(abs(diff_sv[:,a]))**2)), "\\\\ \hline"
             """
-            factor = mass if a==3 else 1.0
-
     #       #split in upper and lower widths
             #print np.mean(diff_nn[:,a]), factor, np.mean(diff_nn[:,a])/factor
             #means_nn[a].append(np.mean(diff_nn[:,a])/ factor)
@@ -283,13 +292,18 @@ def apply(selection):
             #widths_sv_upper[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] > 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] > 0, diff_sv[:,a]).size))/factor)
             #widths_sv_lower[a].append((np.sqrt(np.sum(np.square(np.extract(diff_sv[:,a] < 0, diff_sv[:,a])))/np.extract(diff_sv[:,a] < 0, diff_sv[:,a]).size))/factor)
 
-            percentiles_15p9_nn[a].append(np.percentile(diff_nn[:,a], 15.9)/factor)
-            percentiles_50p0_nn[a].append(np.percentile(diff_nn[:,a], 50.0)/factor)
-            percentiles_84p1_nn[a].append(np.percentile(diff_nn[:,a], 84.1)/factor)
+            percentiles_15p9_nn[a].append(np.percentile(diff_nn[:,a], 15.9))
+            percentiles_50p0_nn[a].append(np.percentile(diff_nn[:,a], 50.0))
+            percentiles_84p1_nn[a].append(np.percentile(diff_nn[:,a], 84.1))
 
-            percentiles_15p9_sv[a].append(np.percentile(diff_sv[:,a], 15.9)/factor)
-            percentiles_50p0_sv[a].append(np.percentile(diff_sv[:,a], 50.0)/factor)
-            percentiles_84p1_sv[a].append(np.percentile(diff_sv[:,a], 84.1)/factor)
+            percentiles_15p9_sv[a].append(np.percentile(diff_sv[:,a], 15.9))
+            percentiles_50p0_sv[a].append(np.percentile(diff_sv[:,a], 50.0))
+            percentiles_84p1_sv[a].append(np.percentile(diff_sv[:,a], 84.1))
+            
+            if a in [0,1]:
+                percentiles_15p9_ddt[a].append(np.percentile(diff_ddt[:,a], 15.9))
+                percentiles_50p0_ddt[a].append(np.percentile(diff_ddt[:,a], 50.0))
+                percentiles_84p1_ddt[a].append(np.percentile(diff_ddt[:,a], 84.1))
         #break
     """
             ax.set_xlabel(titles[a])
@@ -443,6 +457,9 @@ def apply(selection):
         "percentiles_15p9_sv": percentiles_15p9_sv,
         "percentiles_84p1_sv": percentiles_84p1_sv,
         "stability_sv": stability_sv,
+        "percentiles_50p0_ddt": percentiles_50p0_ddt,
+        "percentiles_15p9_ddt": percentiles_15p9_ddt,
+        "percentiles_84p1_ddt": percentiles_84p1_ddt,
         "info" : info,
     }
     return results
