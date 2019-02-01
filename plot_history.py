@@ -3,12 +3,12 @@ import json
 import numpy as np
 
 
-with open("trainings/test_history_2/tt/history.json", "r") as hist:
+with open("trainings/my_training/tt/history.json", "r") as hist:
     hist_dict = json.loads(hist.read())
 
 train_metrics = sorted([m for m in hist_dict if "val_" not in m])
 validation_metrics = sorted([m for m in hist_dict if "val_" in m])
-max_epoch = 200
+max_epoch = -1
 
 for tm, vm in zip(train_metrics, validation_metrics):
     print tm, vm
