@@ -1,3 +1,6 @@
 [submodule "jdl_creator"]
 	path = jdl_creator
 	url = git@gitlab.ekp.kit.edu:mschnepf/jdl_creator.git
+[submodule "DDT"]
+	path = DDT
+	url = git@github.com:KIT-CMS/DDT.git
