@@ -15,5 +15,4 @@ dir="trainings/my_training"
 # selected subset at ETP
 input="/storage/b/friese/toymass13_lowmass/m_*_0_${channel}*.root"
 
-python train_Nostradamass.py $channel ${dir}/${channel} $metcovstd $metcovmean $metcorrstd $input
-
+python train_Nostradamass.py $channel ${dir}/${channel} $input

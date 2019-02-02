@@ -42,7 +42,7 @@ def train_model(X, Y,  channel="mt", metinputfile="metdata/metcovariance.root", 
         from losses import loss_semi_leptonic as loss
     else:
         from losses import loss_fully_leptonic as loss
-    from losses import loss_M, loss_PT, loss_dmTau, loss_dx
+    from losses import loss_dM_had, loss_dMtaus_had, loss_dPTtaus, loss_dPtaus, loss_dxyz, loss_dmet
     
     from keras.optimizers import Adamax 
     optimizer = Adamax()
@@ -51,9 +51,9 @@ def train_model(X, Y,  channel="mt", metinputfile="metdata/metcovariance.root", 
         model.add(Dense(500, activation='linear', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer, input_shape=(X.shape[1],)))
         model.add(GaussianNoise(stddev=1.0))
         for l in range(9):
-            model.add(Dense(500, activation='relu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
+            model.add(Dense(500, activation='elu', kernel_initializer=kernel_initializer, bias_initializer=bias_initializer))
         model.add(Dense(Y.shape[1], activation='linear'))
-        model.compile(loss=loss, optimizer=optimizer, metrics = [loss_M, loss_PT, loss_dmTau, loss_dx])
+        model.compile(loss=loss, optimizer=optimizer, metrics = [loss_dM_had, loss_dMtaus_had, loss_dPTtaus, loss_dPtaus, loss_dxyz, loss_dmet])
     else:
         model = load_model(previous_model)
 
@@ -62,7 +62,7 @@ def train_model(X, Y,  channel="mt", metinputfile="metdata/metcovariance.root", 
     from keras.callbacks import EarlyStopping
     from keras.callbacks import TensorBoard
     #tensorboard = TensorBoard(log_dir=os.path.join(out_folder,'logs'), histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
-    early_stopping = EarlyStopping(patience = 25)
+    early_stopping = EarlyStopping(patience = 50)
     history_list = []
 
     from sklearn.model_selection import train_test_split
