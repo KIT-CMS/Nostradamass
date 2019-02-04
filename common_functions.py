@@ -200,8 +200,8 @@ def load_from_pickle(in_filename):
 def load_model(model_path):
     from keras.models import load_model
     from losses import loss_fully_hadronic, loss_semi_leptonic, loss_fully_leptonic
-    from losses import loss_M, loss_PT, loss_dmTau, loss_dx
-    model = load_model(model_path, custom_objects={'loss_fully_hadronic': loss_fully_hadronic, 'loss_semi_leptonic': loss_semi_leptonic, 'loss_fully_leptonic': loss_fully_leptonic, 'loss_M' : loss_M, 'loss_PT':loss_PT, 'loss_dmTau' : loss_dmTau, 'loss_dx': loss_dx})
+    from losses import loss_dM_had, loss_dPTtaus, loss_dMtaus_had, loss_dxyz, loss_dPtaus, loss_dmet
+    model = load_model(model_path, custom_objects={'loss_fully_hadronic': loss_fully_hadronic, 'loss_semi_leptonic': loss_semi_leptonic, 'loss_fully_leptonic': loss_fully_leptonic, 'loss_dM_had' : loss_dM_had, 'loss_dPTtaus':loss_dPTtaus, 'loss_dMtaus_had' : loss_dMtaus_had, 'loss_dxyz': loss_dxyz, 'loss_dPtaus' : loss_dPtaus, 'loss_dmet':loss_dmet})
     return model
 
 def transform_fourvector(vin, cartesian_types=np.float64, hc_types=np.float64):
